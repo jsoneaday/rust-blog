@@ -1,0 +1,45 @@
+[package]
+name = "rust-blog-api"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+path = "src/main.rs"
+name = "rust-blog-api"
+
+[dependencies]
+actix-cors = "0.7.0"
+actix-http = "3.5.1"
+actix-web = "4.4.1"
+actix-multipart = "0.6.1"
+argon2 = "0.5.1"
+async_once = "0.2.6"
+async-trait = "0.1.72"
+chrono = { version = "0.4.26", features = ["serde"] }
+derive_more = "0.99.17"
+dotenv = "0.15.0"
+env_logger = "0.10.0"
+fake = { version = "2.6.1", features=['derive']}
+futures = "0.3.28"
+futures-util = "0.3.28"
+jsonwebtoken = "9.2.0"
+lazy_static = "1.4.0"
+log = "0.4.16"
+mockall = "0.12.1"
+multipart = "0.18.0"
+openssl = "0.10.56"
+protoc = "2.28.0"
+ring = { version = "0.17.7", features = ["std"] }
+rand = "0.8.5"
+rand_core = { version = "0.6.4", features = ["std"] }
+reqwest = { version = "0.11.14", features = ["json", "multipart"] }
+serde = { version = "1.0.157", features = ["derive"] }
+serde_json = "1.0.94"
+serde_repr = "0.1.12"
+sqlx = { version = "0.7.1", features = ["postgres", "runtime-tokio-rustls", "chrono"]}
+tokio = { version = "1.26.0", features = ["full"] }
+tokio-stream = "0.1.14"
+uuid = { version = "1.3.0", features = ["v4", "serde"] }

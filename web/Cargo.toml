@@ -1,0 +1,16 @@
+[package]
+name = "rust-blog-web"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+path = "src/main.rs"
+name = "rust-blog-web"
+
+[dependencies]
+leptos = { version = "0.5.4", features = ["csr", "nightly"] }
+leptos_meta = { version = "0.5.4", features = ["csr", "nightly"] }
+leptos_router = { version = "0.5.4", features = ["csr", "nightly"] }
