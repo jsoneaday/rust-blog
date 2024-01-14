@@ -1,10 +1,9 @@
 use chrono::{Utc, Duration};
-use jsonwebtoken::{DecodingKey, EncodingKey};
+use jsonwebtoken::{DecodingKey, EncodingKey, Validation, encode, decode, Algorithm };
 use ring::signature::{Ed25519KeyPair, KeyPair};
 use serde::{Deserialize, Serialize};
-use jsonwebtoken::{ Validation, encode, decode, Algorithm };
 use async_trait::async_trait;
-use derive_more::{Error, Display};
+use derive_more::Display;
 use log::info;
 
 pub const STANDARD_REFRESH_TOKEN_EXPIRATION: i64 = 60 * 60 * 24 * 30;
@@ -13,11 +12,11 @@ pub const REFRESH_TOKEN_LABEL: &str = "refresh_token";
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
-    pub sub: String,
+    pub sub: String, // user_name
     pub exp: usize
 }
 
-#[derive(Error, Display, Debug)]
+#[derive(Display, Debug)]
 pub enum AuthenticationError {
     #[display(fmt = "Password Authentication Failure")]
     PasswordAuthenticationFailure,
