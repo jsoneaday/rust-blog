@@ -61,11 +61,11 @@ pub async fn login<T: AuthenticateDbFn + QueryUserFn + Repository, U: Authentica
                     #[allow(unused)] let mut user_name = "".to_string();                    
                     #[allow(unused)] let mut http_response: Option<HttpResponse> = None;
                     
-                    let developer = app_data.repo.query_user(id).await;
-                    match developer {
-                        Ok(opt_dev) => {
-                            if let Some(dev) = opt_dev {
-                                user_name = dev.user_name;
+                    let user = app_data.repo.query_user(id).await;
+                    match user {
+                        Ok(opt_user) => {
+                            if let Some(usr) = opt_user {
+                                user_name = usr.user_name;
                                 let (refresh_cookie, access_token) = get_refresh_and_access_token_response(app_data, user_name.as_str());
                                 http_response = Some(HttpResponse::Ok()
                                     .cookie(refresh_cookie)
@@ -120,7 +120,7 @@ fn get_refresh_and_access_token_response<'a, T: AuthenticateDbFn + Repository, U
 #[cfg(test)]
 mod tests {
     use super::*;
-    use actix_http::StatusCode;
+    use actix_http::{StatusCode, body};
     use async_trait::async_trait;
     use fake::{faker::internet::en::FreeEmail, Fake};
     use jsonwebtoken::DecodingKey;
@@ -177,9 +177,16 @@ mod tests {
         let app_data = get_app_data(repo, auth_service).await;
 
         let result = login(app_data.clone(), Json(LoginCredential { email: FreeEmail().fake::<String>(), password: "test123".to_string() })).await;
-
         assert!(result.status() == StatusCode::OK);
-        let cookie = result.cookies().last().unwrap();
+
+        let (res, mut body) = result.into_parts();
+        let bytes = body::to_bytes(&mut body).await.ok().unwrap();
+        let token_str = String::from_utf8_lossy(&bytes);
+        let token = decode_token(&token_str, &app_data.auth_keys.decoding_key);
+        assert!(token.exp >= STANDARD_ACCESS_TOKEN_EXPIRATION as usize);
+        assert!(token.sub == USERNAME.to_string());
+
+        let cookie = res.cookies().last().unwrap();
         let refresh_token = cookie.value();
         let claims = decode_token(refresh_token, &app_data.auth_keys.decoding_key);
         

@@ -1,0 +1,1 @@
+psql -h localhost -p 5433 -d syntaxmakers -U syntaxmakers

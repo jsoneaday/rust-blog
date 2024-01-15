@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# this is a list of various migration related commands
+# make sure you've installed sqlx-cli and postgres
+# uncomment the one you want to run
+
+# test psql on command line using: psql -h localhost -p 5433 -d rustblog -U rustblog
+
+# sqlx database create --database-url postgres://rustblog:rustblog@localhost:5433/rustblog
+# sqlx migrate add all_tables
+# sqlx migrate run --database-url postgres://rustblog:rustblog@localhost:5433/rustblog

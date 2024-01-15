@@ -17,6 +17,10 @@ pub mod common {
     }
 }
 pub mod routes {
+    pub mod route_configs {
+        pub mod user_configs;
+        pub mod post_configs;
+    }
     pub mod authentication {
         pub mod models;
         pub mod routes;
@@ -33,10 +37,12 @@ pub mod common_test {
 use crate::routes::app_state::AppState;
 use std::env;
 use actix_cors::Cors;
-use actix_web::{HttpServer, App, http::header, middleware::Logger};
+use actix_web::{HttpServer, App, http::header, middleware::Logger, web};
 use common::{repository::base::{DbRepo, Repository}, authentication::auth_service::{AuthService, init_auth_keys}};
 use dotenv::dotenv;
 use openssl::ssl::{SslAcceptorBuilder, SslAcceptor, SslMethod, SslFiletype};
+use crate::routes::route_configs::post_configs::post_configs;
+use crate::routes::route_configs::user_configs::user_configs;
 
 #[allow(unused)]
 fn ssl_builder() -> SslAcceptorBuilder {
@@ -77,9 +83,15 @@ pub async fn run() -> std::io::Result<()> {
                     ])
                     .supports_credentials()
                     .max_age(3600)
-            )          
+            )
+            .service(
+                web::scope("/v1")
+                    .configure(user_configs)
+                    .configure(post_configs)
+            )
     })
     .bind((host, port)).expect("")
+    // .bind_openssl((host, post), ssl_builder())?
     .run()
     .await
 }
