@@ -122,7 +122,7 @@ mod tests {
     use super::*;
     use actix_http::{StatusCode, body};
     use async_trait::async_trait;
-    use fake::{faker::internet::en::FreeEmail, Fake};
+    use fake::{faker::internet::en::{FreeEmail, Password}, Fake};
     use jsonwebtoken::DecodingKey;
     use crate::{
         common::{
@@ -176,7 +176,7 @@ mod tests {
         let auth_service = MockAuthService;
         let app_data = get_app_data(repo, auth_service).await;
 
-        let result = login(app_data.clone(), Json(LoginCredential { email: FreeEmail().fake::<String>(), password: "test123".to_string() })).await;
+        let result = login(app_data.clone(), Json(LoginCredential { email: FreeEmail().fake::<String>(), password: Password(5..10).fake::<String>() })).await;
         assert!(result.status() == StatusCode::OK);
 
         let (res, mut body) = result.into_parts();

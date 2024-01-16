@@ -1,5 +1,7 @@
+use fake::Fake;
+use fake::faker::internet::en::Username;
 use rust_blog_api::common::repository::base::{Repository, DbRepo};
-use rust_blog_api::common::authentication::auth_service::{AuthService, Authenticator};
+use rust_blog_api::common::authentication::auth_service::{AuthService, Authenticator, STANDARD_ACCESS_TOKEN_EXPIRATION};
 use rust_blog_api::common_test::fixtures::{get_app_data, get_fake_httprequest_with_bearer_token};
 use rust_blog_api::routes::route_utils::get_header_strings;
 
@@ -8,10 +10,10 @@ async fn test_is_authenticated() {
     let repo = DbRepo::init().await;
     let auth_service = AuthService;
     let app_data = get_app_data(repo, auth_service).await;
-    let user_name = "jon".to_string();
+    let user_name = Username().fake::<String>();
     
     let req = get_fake_httprequest_with_bearer_token(
-        user_name.clone(), &app_data.auth_keys.encoding_key, "/v1/administrator", 1, Some(60*2), None
+        user_name.clone(), &app_data.auth_keys.encoding_key, "/v1/administrator", 1, Some(STANDARD_ACCESS_TOKEN_EXPIRATION), None
     );
     let headers = get_header_strings(req.headers());
 
