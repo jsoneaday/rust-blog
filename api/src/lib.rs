@@ -10,10 +10,14 @@ pub mod common {
     pub mod repository {
         pub mod base;
         pub mod error;    
-        pub mod user {
+        pub mod administrator {
             pub mod models;
             pub mod repo;
-        }    
+        }
+        pub mod post {
+            pub mod models;
+            pub mod repo;
+        }
     }
 }
 pub mod routes {

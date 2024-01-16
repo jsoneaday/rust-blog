@@ -1,7 +1,7 @@
 use sqlx::{Postgres, query_as, Pool, Error};
-use crate::common::repository::{user::models::AuthenticateResult, base::{EntityId, DbRepo, ConnGetter}};
+use crate::common::repository::{administrator::models::AuthenticateResult, base::{EntityId, DbRepo, ConnGetter}};
 use async_trait::async_trait;
-use crate::common::repository::user::models::User;
+use crate::common::repository::administrator::models::Administrator;
 
 mod internal {   
     use super::*;    
@@ -22,8 +22,8 @@ mod internal {
         }
     }
 
-    pub async fn query_user(conn: &Pool<Postgres>, id: i64) -> Result<Option<User>, Error> {
-        query_as::<_, User>("select * from User where id = $1")
+    pub async fn query_administrator(conn: &Pool<Postgres>, id: i64) -> Result<Option<Administrator>, Error> {
+        query_as::<_, Administrator>("select * from User where id = $1")
             .bind(id)
             .fetch_optional(conn)
             .await
@@ -43,13 +43,13 @@ impl AuthenticateDbFn for DbRepo {
 }
 
 #[async_trait]
-pub trait QueryUserFn {
-    async fn query_user(&self, id: i64) -> Result<Option<User>, Error>;
+pub trait QueryAdministratorFn {
+    async fn query_administrator(&self, id: i64) -> Result<Option<Administrator>, Error>;
 }
 
 #[async_trait]
-impl QueryUserFn for DbRepo {
-    async fn query_user(&self, id: i64) -> Result<Option<User>, Error> {
-        internal::query_user(self.get_conn(), id).await
+impl QueryAdministratorFn for DbRepo {
+    async fn query_administrator(&self, id: i64) -> Result<Option<Administrator>, Error> {
+        internal::query_administrator(self.get_conn(), id).await
     }
 }

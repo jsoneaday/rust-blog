@@ -10,7 +10,7 @@ pub enum AuthenticateResult {
 }
 
 #[derive(FromRow, Serialize, Deserialize, Debug)]
-pub struct User {
+pub struct Administrator {
     pub id: i64,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,

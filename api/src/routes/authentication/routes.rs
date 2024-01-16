@@ -11,7 +11,7 @@ use crate::{
     common::{
         repository::{
             base::Repository, 
-            user::{repo::{AuthenticateDbFn, QueryUserFn}, models::AuthenticateResult}
+            administrator::{repo::{AuthenticateDbFn, QueryAdministratorFn}, models::AuthenticateResult}
         }, 
         authentication::auth_service::{get_token, STANDARD_REFRESH_TOKEN_EXPIRATION, Authenticator, STANDARD_ACCESS_TOKEN_EXPIRATION, REFRESH_TOKEN_LABEL, decode_token}
     }
@@ -50,7 +50,7 @@ pub async fn refresh_access_token<T: Repository, U: Authenticator>(app_data: Dat
 }
 
 
-pub async fn login<T: AuthenticateDbFn + QueryUserFn + Repository, U: Authenticator>(app_data: Data<AppState<T, U>>, json: Json<LoginCredential>) 
+pub async fn login<T: AuthenticateDbFn + QueryAdministratorFn + Repository, U: Authenticator>(app_data: Data<AppState<T, U>>, json: Json<LoginCredential>) 
     -> HttpResponse {
     let auth_result = app_data.repo.authenticate_db(json.email.clone(), json.password.clone()).await;
     
@@ -61,7 +61,7 @@ pub async fn login<T: AuthenticateDbFn + QueryUserFn + Repository, U: Authentica
                     #[allow(unused)] let mut user_name = "".to_string();                    
                     #[allow(unused)] let mut http_response: Option<HttpResponse> = None;
                     
-                    let user = app_data.repo.query_user(id).await;
+                    let user = app_data.repo.query_administrator(id).await;
                     match user {
                         Ok(opt_user) => {
                             if let Some(usr) = opt_user {
@@ -126,7 +126,7 @@ mod tests {
     use jsonwebtoken::DecodingKey;
     use crate::{
         common::{
-            repository::user::{repo::AuthenticateDbFn, models::User}, 
+            repository::administrator::{repo::AuthenticateDbFn, models::Administrator}, 
             authentication::auth_service::{STANDARD_REFRESH_TOKEN_EXPIRATION, AuthenticationError}
         }, 
         common_test::fixtures::get_app_data
@@ -157,9 +157,9 @@ mod tests {
     }
 
     #[async_trait]
-    impl QueryUserFn for MockDbRepo {
-        async fn query_user(&self, _id: i64) -> Result<Option<User>, sqlx::Error> {
-            Ok(Some(User {
+    impl QueryAdministratorFn for MockDbRepo {
+        async fn query_administrator(&self, _id: i64) -> Result<Option<Administrator>, sqlx::Error> {
+            Ok(Some(Administrator {
                 id: 0,
                 created_at: Utc::now(),
                 updated_at: Utc::now(),
