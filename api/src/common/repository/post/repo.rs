@@ -6,7 +6,7 @@ mod internal {
     use super::*;
 
     pub async fn query_posts(conn: &Pool<Postgres>, page_size: i32, last_offset: i64) -> Result<Vec<Post>, Error> {
-        query_as::<_, Post>("select * from post where limit $1 offset $2")
+        query_as::<_, Post>("select * from post order by updated_at desc limit $1 offset $2")
             .bind(page_size)
             .bind(last_offset)
             .fetch_all(conn)

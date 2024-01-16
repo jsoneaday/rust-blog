@@ -7,7 +7,7 @@ mod internal {
     use super::*;    
 
     pub async fn authenticate_db(conn: &Pool<Postgres>, email: String, password: String) -> Result<AuthenticateResult, sqlx::Error> {        
-        let result = query_as::<_, EntityId>("select id from user where email = $1 and password = $2")
+        let result = query_as::<_, EntityId>("select id from administrator where email = $1 and password = $2")
             .bind(email)
             .bind(password)
             .fetch_optional(conn)
@@ -23,7 +23,7 @@ mod internal {
     }
 
     pub async fn query_administrator(conn: &Pool<Postgres>, id: i64) -> Result<Option<Administrator>, Error> {
-        query_as::<_, Administrator>("select * from User where id = $1")
+        query_as::<_, Administrator>("select * from administrator where id = $1")
             .bind(id)
             .fetch_optional(conn)
             .await
