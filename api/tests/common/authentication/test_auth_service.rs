@@ -38,7 +38,7 @@ async fn test_is_authenticated_returns_correct_boolean() {
     let user_name = Username().fake::<String>();
     
     let req = get_fake_httprequest_with_bearer_token(
-        user_name.clone(), &app_data.auth_keys.encoding_key, "/v1/administrator", 1, Some(STANDARD_ACCESS_TOKEN_EXPIRATION), None
+        user_name.clone(), &app_data.auth_keys.encoding_key, "/v1/administrator", 1, Some(STANDARD_ACCESS_TOKEN_EXPIRATION)
     );
     let headers = get_header_strings(req.headers());
 

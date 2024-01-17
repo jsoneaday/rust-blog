@@ -28,11 +28,16 @@ pub mod routes {
     pub mod authentication {
         pub mod models;
         pub mod routes;
-    }    
+    }
+    pub mod post {
+        pub mod models;
+        pub mod routes;
+    }
     pub mod app_state;
     pub mod base_model;
     pub mod route_utils;
     pub mod stripped_down_error;
+    pub mod auth_helper;
 }
 pub mod common_test {
     pub mod fixtures;

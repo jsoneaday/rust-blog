@@ -9,5 +9,10 @@ pub mod common {
         pub mod post {
             pub mod test_post;
         }
+    }    
+}
+pub mod routes {
+    pub mod authentication {
+        pub mod test_authentication_routes;
     }
 }

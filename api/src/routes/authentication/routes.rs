@@ -5,7 +5,7 @@ use actix_web::{
     http::header::ContentType, HttpRequest
 };
 use chrono::Utc;
-use log::error;
+use log::{error, info};
 use crate::{
     routes::app_state::AppState, 
     common::{
@@ -30,14 +30,14 @@ pub async fn refresh_access_token<T: Repository, U: Authenticator>(app_data: Dat
             let current_access_token = decode_token(&json.old_token, &app_data.auth_keys.decoding_key);
             if refresh_user_name == current_access_token.sub && refresh_token.exp >= (Utc::now().timestamp() as usize) {
                 let new_access_token = get_token(refresh_user_name, &app_data.auth_keys.encoding_key, Some(STANDARD_ACCESS_TOKEN_EXPIRATION));
-
+                info!("Access token {}", new_access_token);
                 return HttpResponse::Ok()
-                    .content_type(ContentType::json())
                     .body(new_access_token);
             } else {
+                info!("Refresh access token failed");
                 return HttpResponse::BadRequest()
                     .content_type(ContentType::json())
-                    .body("Authentication failed. Your request token is expired");
+                    .body("Refresh access token failed. Your request token is expired");
             }            
         },
         None => {
@@ -171,7 +171,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_login_route() {
+    async fn test_login_routes_httpresponse() {
         let repo = MockDbRepo::init().await;
         let auth_service = MockAuthService;
         let app_data = get_app_data(repo, auth_service).await;
