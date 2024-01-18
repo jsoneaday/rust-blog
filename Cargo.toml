@@ -3,4 +3,3 @@ members = [
     "web",
     "api"
 ]
-resolver = "2"

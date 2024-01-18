@@ -1,8 +1,16 @@
 use leptos::*;
+use crate::common::layout::Layout;
 
 #[component]
 pub fn Home() -> impl IntoView {
     view! {
-        <p>"Home"</p>
+        <Layout>
+            <div>
+                menu
+            </div>
+            <div>
+                posts
+            </div>
+        </Layout>
     }
 }

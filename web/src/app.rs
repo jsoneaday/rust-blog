@@ -8,7 +8,6 @@ pub fn App() -> impl IntoView {
 
     view! {
         <Router>
-            <nav></nav>
             <main>
                 <Routes>
                     <Route path="/" view=Home />

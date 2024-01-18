@@ -1,0 +1,31 @@
+.job-full-view-subtitle {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  margin-top: 1em;
+  margin-bottom: 1.5em;
+}
+
+.job-full-view-subtitle-item-primary {
+  margin-right: 1em;
+}
+
+.job-full-view-subtitle-item-secondary {
+  margin-top: 1em;
+}
+
+.job-icon {
+  width: 18px;
+  cursor: pointer;
+}
+
+.job-full-view-header {
+  border-bottom: solid 1px var(--header-border-cl);
+  width: 100%;
+}
+
+.job-full-view-section {
+  border-top: solid 1px var(--border-cl);
+  width: 100%;
+}

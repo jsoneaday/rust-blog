@@ -1,0 +1,42 @@
+.home {
+  display: grid;
+  grid-template-columns: 25% 75%;
+  height: 100vh;
+  margin: auto;
+  border: solid 1px red;
+}
+
+.home-item-dev {
+  grid-column: 1;
+  justify-self: center;
+  align-self: center;
+  vertical-align: middle;
+  background-color: var(--panel-bg-cl);
+  padding: 3em;
+}
+
+.home-item-emp {
+  grid-column: 2;
+  justify-self: center;
+  align-self: center;
+  vertical-align: middle;
+  background-color: var(--panel-bg-cl);
+  padding: 3em;
+}
+
+.home-item-content {
+  margin-top: 2rem;
+}
+
+.home-item-link {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+}
+
+.home-icon {
+  width: 20em;
+  height: 20em;
+}
