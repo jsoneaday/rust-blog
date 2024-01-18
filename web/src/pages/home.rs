@@ -11,8 +11,8 @@ pub fn Home() -> impl IntoView {
     view! {
         <Layout>
             <div class="home-menu">
-                <h1>Rust Indie Dev</h1>
-                <strong>David Choi</strong>
+                <h1>"Rust Indie Dev"</h1>
+                <strong>"David Choi"</strong>
             </div>
             <div class="home-content">
                 <ul>

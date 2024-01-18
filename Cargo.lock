@@ -3038,6 +3038,7 @@ dependencies = [
  "leptos",
  "leptos_meta",
  "leptos_router",
+ "regex",
  "serde",
  "serde_json",
 ]

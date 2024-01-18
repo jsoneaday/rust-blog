@@ -1,5 +1,6 @@
 use leptos::*;
 use serde::{Deserialize, Serialize};
+use crate::common::utils::md_to_html_util::MarkdownToHtmlConverter;
 
 #[derive(Clone, Deserialize, Serialize)]
 pub struct PostPreviewParams {
@@ -9,9 +10,17 @@ pub struct PostPreviewParams {
 }
 
 #[component]
-pub fn PostPreview(post: PostPreviewParams) -> impl IntoView {
+pub fn PostPreview(post: PostPreviewParams) -> impl IntoView {    
+    let (content, _set_content) = create_signal(post.content);
+    let html_content = move || {
+        let md_to_html = MarkdownToHtmlConverter::new();
+        md_to_html.convert_md_to_html(content())
+    };
+
     view! {
-        <div>{post.title}</div>
-        <div>{post.content}</div>
+        <section>
+            <h2>{post.title}</h2>
+            <div>{html_content}</div>
+        </section>
     }
 }
