@@ -3038,6 +3038,8 @@ dependencies = [
  "leptos",
  "leptos_meta",
  "leptos_router",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

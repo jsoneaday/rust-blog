@@ -3,7 +3,16 @@ pub mod pages {
     pub mod admin;
 }
 pub mod common {
-    pub mod layout;
+    pub mod testing_utils {
+        pub mod fake_data;
+    }
+    pub mod components {
+        pub mod layout;
+        pub mod post {
+            pub mod post_detail;
+            pub mod post_preview;
+        }        
+    }
 }
 pub mod app;
 

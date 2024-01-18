@@ -3,7 +3,7 @@ use leptos::*;
 #[component]
 pub fn Layout(children: Children) -> impl IntoView {
     view! {
-        <div class="layout-container home">
+        <div class="home">            
             {children()}
         </div>
     }

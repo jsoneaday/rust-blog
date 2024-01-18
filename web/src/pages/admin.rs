@@ -1,5 +1,5 @@
 use leptos::*;
-use crate::common::layout::Layout;
+use crate::common::components::layout::Layout;
 
 #[component]
 pub fn Admin() -> impl IntoView {
