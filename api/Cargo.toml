@@ -13,7 +13,7 @@ name = "rust-blog-api"
 [dependencies]
 actix-cors = "0.7.0"
 actix-http = "3.5.1"
-actix-web = "4.4.1"
+actix-web = { version = "4.4.1", features = ["openssl"] }
 actix-multipart = "0.6.1"
 argon2 = "0.5.2"
 async_once = "0.2.6"
