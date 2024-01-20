@@ -1,5 +1,4 @@
-use std::{borrow::Cow, ops::Deref};
-
+use std::borrow::Cow;
 use regex::Regex;
 use leptos::{logging::log, HtmlElement, html::{AnyElement, div, h1, h2, p, strong, span, em, ol, ul, li}};
 
@@ -258,21 +257,21 @@ impl MarkdownToHtmlConverter {
             } else {
                 if ended_bold {
                     log!("ended bold: {}", item);
-                    let txt_item = Cow::from(format!("{}{}", item.deref(), " "));
+                    let txt_item = Cow::from(format!("{}{}", item, " "));
                     html_items.push(span().child(txt_item).into());
 
                     started_bold = false;
                     ended_bold = false;
                 } else if ended_italic {
                     log!("ended italic: {}", item);
-                    let txt_item = Cow::from(format!("{}{}", item.deref(), " "));
+                    let txt_item = Cow::from(format!("{}{}", item, " "));
                     html_items.push(span().child(txt_item).into());
 
                     started_italic = false;
                     ended_italic = false;
                 } else if !started_bold && !started_italic {
                     log!("add text: {}", item);
-                    let txt_item = Cow::from(format!("{}{}", item.deref(), " "));
+                    let txt_item = Cow::from(format!("{}{}", item, " "));
                     html_items.push(span().child(txt_item).into());
 
                     started_bold = false;
