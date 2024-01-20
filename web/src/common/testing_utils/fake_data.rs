@@ -16,7 +16,7 @@ pub async fn get_fake_post_preview_data() -> Vec<PostPreviewParams> {
             id: 1,
             title: "Rust is nice".to_string(),
             content: r"# Rust is not hard
-            Here's a list of items to first learn
+            Here's a **list** of **items to first learn**, this is **great fun**
             - Memory ownership
             - Async
             - Locking
