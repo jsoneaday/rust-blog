@@ -1,7 +1,7 @@
 use std::{borrow::Cow, ops::Deref};
 
 use regex::Regex;
-use leptos::{logging::log, HtmlElement, html::{AnyElement, div, h1, h2, p, strong, span, em, ol, ul, li}, ev::ended};
+use leptos::{logging::log, HtmlElement, html::{AnyElement, div, h1, h2, p, strong, span, em, ol, ul, li}};
 
 pub struct MarkdownToHtmlConverter {
     pub heading_level_1_finder: Regex,
@@ -154,7 +154,7 @@ impl MarkdownToHtmlConverter {
         }        
         
         // replace tagged items
-        let mut line_items = line_to_check.split(' ').collect::<Vec<&str>>();
+        let line_items = line_to_check.split(' ').collect::<Vec<&str>>();
         log!("lines split by word: {:?}", line_items);
 
         let mut bold_count = 0;        
@@ -167,16 +167,17 @@ impl MarkdownToHtmlConverter {
 
         for item in line_items {
             if self.bold_finder.is_match(item) {
+                log!("bold found: {}", item);
                 html_items.push(bold_items[bold_count].clone());                
                 bold_count += 1;
             } else if self.starting_bold_finder.is_match(item) {
-                log!("started bold found: {}", item);
+                log!("started multi word bold found: {}", item);
                 if !started_bold {
                     ended_bold = false;
                     started_bold = true;
                 }
             } else if self.ending_bold_finder.is_match(item) {
-                log!("ended bold found: {}", item);
+                log!("ended multi word bold found: {}", item);
                 if !ended_bold {
                     ended_bold = true;
                     started_bold = false;
@@ -187,8 +188,7 @@ impl MarkdownToHtmlConverter {
                 if ends_with_asterisk {
                     bold_element.set_inner_text(bold_element.inner_text().trim());
                 }
-                html_items.push(bold_element.clone());
-                // last character may be a separator like comma           
+                html_items.push(bold_element.clone());          
                 if ends_with_asterisk {
                     let str_index = item.len() - 1;
                     let final_str = format!("{} ", item.to_string().as_bytes()[str_index] as char);
@@ -197,28 +197,57 @@ impl MarkdownToHtmlConverter {
 
                 bold_count += 1;
             } else if self.italic_finder.is_match(item) {
-                html_items.push(italic_items[italic_count].clone());                
+                log!("italic found: {}", item);
+
+                if item.starts_with("*") && item.ends_with("*") {
+                    let italic_item_str = format!("{}{}", item.replace("*", ""), " ");
+                    html_items.push(em().child(italic_item_str.to_string()).into());
+                } else { // handles words like super*duper*fun
+                    let mut italic_items_list: Vec<String> = vec![];
+                    let mut italic_items_elements: Vec<HtmlElement<AnyElement>> = vec![];
+
+                    for caps in self.italic_finder.captures_iter(item) {            
+                        for captured_item in caps.iter() {
+                            let match_item = captured_item.unwrap();
+                            let italic_item = match_item.as_str();
+            
+                            italic_items_list.push(format!("{}", italic_item.replace("*", ""))); 
+                        }                           
+                    }
+
+                    let words_split_by_asterisk = item.split('*').collect::<Vec<&str>>();
+                    for word_or_words in words_split_by_asterisk {
+                        if italic_items_list.contains(&(word_or_words.to_string())) {
+                            italic_items_elements.push(em().child(format!("{}", word_or_words)).into());
+                        } else {
+                            italic_items_elements.push(span().child(format!("{}", word_or_words)).into());
+                        }
+                    }
+
+                    italic_items_elements.push(span().child(" ").into());
+                    html_items.push(span().child(italic_items_elements).into());
+                }
+
                 italic_count += 1;
             } else if self.starting_italic_finder.is_match(item) {
-                log!("started italic found: {}", item);
+                log!("started multi word italic found: {}", item);
                 if !started_italic {
                     ended_italic = false;
                     started_italic = true;
                 }
             } else if self.ending_italic_finder.is_match(item) {
-                log!("ended italic found: {}", item);
+                log!("ended multi word italic found: {}", item);
                 if !ended_italic {
                     ended_italic = true;
                     started_italic = false;
                 }
 
-                let italic_element = italic_items[italic_count].clone();                                
+                let italic_element = italic_items[italic_count].clone();
                 let ends_with_asterisk = !item.ends_with("*");
                 if ends_with_asterisk {
                     italic_element.set_inner_text(italic_element.inner_text().trim());
                 }
-                html_items.push(italic_element.clone());
-                // last character may be a separator like comma           
+                html_items.push(italic_element.clone());         
                 if ends_with_asterisk {
                     let last_index = item.len() - 1;
                     let final_char = format!("{} ", item.to_string().as_bytes()[last_index] as char);
