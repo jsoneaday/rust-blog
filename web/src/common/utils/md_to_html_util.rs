@@ -167,7 +167,37 @@ impl MarkdownToHtmlConverter {
         for item in line_items {
             if self.bold_finder.is_match(item) {
                 log!("bold found: {}", item);
-                html_items.push(bold_items[bold_count].clone());                
+
+                if item.starts_with("**") && item.ends_with("**") {
+                    let bold_item_str = format!("{}{}", item.replace("**", ""), " ");
+                    html_items.push(strong().child(bold_item_str.to_string()).into());
+                } else { // handles words like super**duper**fun
+                    log!("intra-word bold found");
+                    let mut bold_items_list: Vec<String> = vec![];
+                    let mut bold_items_elements: Vec<HtmlElement<AnyElement>> = vec![];
+
+                    for caps in self.bold_finder.captures_iter(item) {            
+                        for captured_item in caps.iter() {
+                            let match_item = captured_item.unwrap();
+                            let bold_item = match_item.as_str();
+            
+                            bold_items_list.push(format!("{}", bold_item.replace("**", ""))); 
+                        }                           
+                    }
+
+                    let words_split_by_asterisk = item.split("**").collect::<Vec<&str>>();
+                    for word_or_words in words_split_by_asterisk {
+                        if bold_items_list.contains(&(word_or_words.to_string())) {
+                            bold_items_elements.push(strong().child(format!("{}", word_or_words)).into());
+                        } else {
+                            bold_items_elements.push(span().child(format!("{}", word_or_words)).into());
+                        }
+                    }
+
+                    bold_items_elements.push(span().child(" ").into());
+                    html_items.push(span().child(bold_items_elements).into());
+                }
+
                 bold_count += 1;
             } else if self.starting_bold_finder.is_match(item) {
                 log!("started multi word bold found: {}", item);
@@ -196,8 +226,6 @@ impl MarkdownToHtmlConverter {
 
                 bold_count += 1;
             } else if self.italic_finder.is_match(item) {
-                log!("italic found: {}", item);
-
                 if item.starts_with("*") && item.ends_with("*") {
                     let italic_item_str = format!("{}{}", item.replace("*", ""), " ");
                     html_items.push(em().child(italic_item_str.to_string()).into());
