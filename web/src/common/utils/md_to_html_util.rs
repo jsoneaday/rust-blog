@@ -79,9 +79,6 @@ impl MarkdownToHtmlConverter {
                     html_lines.push(div().child(copyable_line).into());
                 }
             }
-            // div().child(child)
-            // div().child(("hello", strong().child("Greg"), "how are you"));
-            // div().children()
         }
         html_lines
     }
@@ -148,13 +145,10 @@ impl MarkdownToHtmlConverter {
 
                 let italic_item_str = format!("{}{}", italic_item.replace("*", ""), " ");
                 italic_items.push(em().child(italic_item_str.to_string()).into()); 
-                log!("italic item: {:?}", italic_item_str);
             }                           
         }        
         
-        // replace tagged items
         let line_items = line_to_check.split(' ').collect::<Vec<&str>>();
-        log!("lines split by word: {:?}", line_items);
 
         let mut bold_count = 0;        
         let mut started_bold = false;
@@ -166,13 +160,10 @@ impl MarkdownToHtmlConverter {
 
         for item in line_items {
             if self.bold_finder.is_match(item) {
-                log!("bold found: {}", item);
-
                 if item.starts_with("**") && item.ends_with("**") {
                     let bold_item_str = format!("{}{}", item.replace("**", ""), " ");
                     html_items.push(strong().child(bold_item_str.to_string()).into());
                 } else { // handles words like super**duper**fun
-                    log!("intra-word bold found");
                     let mut bold_items_list: Vec<String> = vec![];
                     let mut bold_items_elements: Vec<HtmlElement<AnyElement>> = vec![];
 
@@ -200,13 +191,11 @@ impl MarkdownToHtmlConverter {
 
                 bold_count += 1;
             } else if self.starting_bold_finder.is_match(item) {
-                log!("started multi word bold found: {}", item);
                 if !started_bold {
                     ended_bold = false;
                     started_bold = true;
                 }
             } else if self.ending_bold_finder.is_match(item) {
-                log!("ended multi word bold found: {}", item);
                 if !ended_bold {
                     ended_bold = true;
                     started_bold = false;
@@ -257,13 +246,11 @@ impl MarkdownToHtmlConverter {
 
                 italic_count += 1;
             } else if self.starting_italic_finder.is_match(item) {
-                log!("started multi word italic found: {}", item);
                 if !started_italic {
                     ended_italic = false;
                     started_italic = true;
                 }
             } else if self.ending_italic_finder.is_match(item) {
-                log!("ended multi word italic found: {}", item);
                 if !ended_italic {
                     ended_italic = true;
                     started_italic = false;
@@ -284,21 +271,18 @@ impl MarkdownToHtmlConverter {
                 italic_count += 1;
             } else {
                 if ended_bold {
-                    log!("ended bold: {}", item);
                     let txt_item = Cow::from(format!("{}{}", item, " "));
                     html_items.push(span().child(txt_item).into());
 
                     started_bold = false;
                     ended_bold = false;
                 } else if ended_italic {
-                    log!("ended italic: {}", item);
                     let txt_item = Cow::from(format!("{}{}", item, " "));
                     html_items.push(span().child(txt_item).into());
 
                     started_italic = false;
                     ended_italic = false;
                 } else if !started_bold && !started_italic {
-                    log!("add text: {}", item);
                     let txt_item = Cow::from(format!("{}{}", item, " "));
                     html_items.push(span().child(txt_item).into());
 
