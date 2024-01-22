@@ -11,6 +11,7 @@ path = "src/main.rs"
 name = "rust-blog-web"
 
 [dependencies]
+console_error_panic_hook = "0.1.7"
 leptos = { version = "0.5.4", features = ["csr", "nightly"] }
 leptos_meta = { version = "0.5.4", features = ["csr", "nightly"] }
 leptos_router = { version = "0.5.4", features = ["csr", "nightly"] }

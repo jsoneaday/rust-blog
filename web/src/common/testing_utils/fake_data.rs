@@ -26,7 +26,13 @@ pub async fn get_fake_post_preview_data() -> Vec<PostPreviewParams> {
         PostPreviewParams {
             id: 1,
             title: "Rust is nice".to_string(),
-            content: "I like Rust".to_string()
+            content: r#"Here's some code
+
+            `fn go() -> String {
+                // do work
+                "hello world".to_string()
+            }`
+            "#.to_string()
         }
     ]
 }
