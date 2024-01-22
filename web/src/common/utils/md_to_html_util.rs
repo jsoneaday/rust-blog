@@ -228,12 +228,12 @@ impl MarkdownToHtmlConverter {
                 }
 
                 let bold_element = bold_items[bold_count].clone();                                
-                let ends_with_asterisk = !item.ends_with("*");
-                if ends_with_asterisk {
+                let ends_with_asterisk = item.ends_with("*");
+                if !ends_with_asterisk {
                     bold_element.set_inner_text(bold_element.inner_text().trim());
                 }
                 html_items.push(bold_element.clone());          
-                if ends_with_asterisk {
+                if !ends_with_asterisk {
                     let str_index = item.len() - 1;
                     let final_str = format!("{} ", item.to_string().as_bytes()[str_index] as char);
                     html_items.push(span().child(final_str).into());                    
@@ -286,12 +286,12 @@ impl MarkdownToHtmlConverter {
                 }
 
                 let italic_element = italic_items[italic_count].clone();
-                let ends_with_asterisk = !item.ends_with("*");
-                if ends_with_asterisk {
+                let ends_with_asterisk = item.ends_with("*");
+                if !ends_with_asterisk {
                     italic_element.set_inner_text(italic_element.inner_text().trim());
                 }
                 html_items.push(italic_element.clone());         
-                if ends_with_asterisk {
+                if !ends_with_asterisk {
                     let last_index = item.len() - 1;
                     let final_char = format!("{} ", item.to_string().as_bytes()[last_index] as char);
                     html_items.push(span().child(final_char).into());                    
@@ -315,7 +315,7 @@ impl MarkdownToHtmlConverter {
                             let match_item = captured_item.unwrap();
                             let code_item = match_item.as_str();
             
-                            code_items_list.push(format!("{}", code_item.replace("*", ""))); 
+                            code_items_list.push(format!("{}", code_item.replace("`", ""))); 
                         }                           
                     }
 
@@ -347,12 +347,12 @@ impl MarkdownToHtmlConverter {
                 }
 
                 let code_element = code_items[code_count].clone();
-                let ends_with_tick = !item.ends_with("`");
-                if ends_with_tick {
+                let ends_with_tick = item.ends_with("`");
+                if !ends_with_tick {
                     code_element.set_inner_text(code_element.inner_text().trim());
                 }
                 html_items.push(code_element.clone());         
-                if ends_with_tick {
+                if !ends_with_tick {
                     let last_index = item.len() - 1;
                     let final_char = format!("{} ", item.to_string().as_bytes()[last_index] as char);
                     html_items.push(span().child(final_char).into());                    
