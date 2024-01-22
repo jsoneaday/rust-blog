@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 use regex::Regex;
-use leptos::{logging::log, HtmlElement, html::{AnyElement, div, h1, h2, p, strong, span, em, ol, ul, li}};
+use leptos::{logging::log, HtmlElement, html::{AnyElement, div, h1, h2, p, strong, span, code, em, ol, ul, li}};
 
 pub struct MarkdownToHtmlConverter {
     pub heading_level_1_finder: Regex,
@@ -15,6 +15,9 @@ pub struct MarkdownToHtmlConverter {
     pub italic_finder: Regex,
     pub starting_italic_finder: Regex,
     pub ending_italic_finder: Regex,
+    pub code_finder: Regex,
+    pub starting_code_finder: Regex,
+    pub ending_code_finder: Regex,
 }
 
 impl MarkdownToHtmlConverter {
@@ -31,6 +34,9 @@ impl MarkdownToHtmlConverter {
             italic_finder: Regex::new(r"\*{1}[\w\s]+\*{1}").unwrap(),
             starting_italic_finder: Regex::new(r"\*{1}[\w\s]+").unwrap(),
             ending_italic_finder: Regex::new(r"[\w\s]+\*{1}").unwrap(),
+            code_finder: Regex::new(r"`[\w\s]+`|`{2}[\w\s]+`{2}").unwrap(),
+            starting_code_finder: Regex::new(r"\`[\w\s]+|\`{2}[\w\s]+").unwrap(),
+            ending_code_finder: Regex::new(r"[\w\s]+\`|[\w\s]+\`{2}").unwrap()
         }
     }
 
@@ -100,7 +106,6 @@ impl MarkdownToHtmlConverter {
     }
 
     fn get_html_element_from_md(&self, regex: &Regex, line_to_check: &str, replacement_html: &str) -> Option<HtmlElement<AnyElement>> {
-        log!("{} has matched for line: {}", replacement_html, line_to_check);
         if replacement_html == TAG_NAME_H1 {
             let new_line = regex.replace(line_to_check, "");
             Some(h1().child(new_line).into())
@@ -120,12 +125,12 @@ impl MarkdownToHtmlConverter {
         }
     }
 
-    fn get_html_element_inside_md(&self, line_to_check: &str, parent_html: &str) -> HtmlElement<AnyElement> {        
+    fn get_html_element_inside_md(&self, line_to_check: &str, parent_html: &str) -> HtmlElement<AnyElement> {
         let mut html_items: Vec<HtmlElement<AnyElement>> = vec![];
         let mut bold_items: Vec<HtmlElement<AnyElement>> = vec![];
         let mut italic_items: Vec<HtmlElement<AnyElement>> = vec![];
+        let mut code_items: Vec<HtmlElement<AnyElement>> = vec![];
         
-        // create bold html elements
         for caps in self.bold_finder.captures_iter(line_to_check) {            
             for captured_item in caps.iter() {
                 let match_item = captured_item.unwrap();
@@ -133,11 +138,9 @@ impl MarkdownToHtmlConverter {
 
                 let bold_item_str = format!("{}{}", bold_item.replace("**", ""), " ");
                 bold_items.push(strong().child(bold_item_str.to_string()).into()); 
-                log!("bold item: {:?}", bold_item_str);
             }                           
         }    
 
-        // create italic html elements
         for caps in self.italic_finder.captures_iter(line_to_check) {            
             for captured_item in caps.iter() {
                 let match_item = captured_item.unwrap();
@@ -147,8 +150,21 @@ impl MarkdownToHtmlConverter {
                 italic_items.push(em().child(italic_item_str.to_string()).into()); 
             }                           
         }        
+
+        for caps in self.code_finder.captures_iter(line_to_check) {            
+            log!("code items");
+            for captured_item in caps.iter() {
+                let match_item = captured_item.unwrap();
+                let code_item = match_item.as_str();
+
+                let code_item_str = format!("{}{}", code_item.replace("`", ""), " ");
+                code_items.push(code().child(code_item_str.to_string()).into()); 
+                log!("code item: {:?}", code_item_str);
+            }                           
+        }        
         
         let line_items = line_to_check.split(' ').collect::<Vec<&str>>();
+        log!("line_items: {:?}", line_items);
 
         let mut bold_count = 0;        
         let mut started_bold = false;
@@ -158,12 +174,20 @@ impl MarkdownToHtmlConverter {
         let mut started_italic = false;
         let mut ended_italic = false;
 
+        let mut code_count = 0;        
+        let mut started_code = false;
+        let mut ended_code = false;
+
         for item in line_items {
+            log!("item: {:?}", item);
             if self.bold_finder.is_match(item) {
+                log!("whole words bold item: {:?}", item);
                 if item.starts_with("**") && item.ends_with("**") {
+                    log!("one word item: {:?}", item);
                     let bold_item_str = format!("{}{}", item.replace("**", ""), " ");
                     html_items.push(strong().child(bold_item_str.to_string()).into());
                 } else { // handles words like super**duper**fun
+                    log!("multiple words item: {:?}", item);
                     let mut bold_items_list: Vec<String> = vec![];
                     let mut bold_items_elements: Vec<HtmlElement<AnyElement>> = vec![];
 
@@ -191,11 +215,13 @@ impl MarkdownToHtmlConverter {
 
                 bold_count += 1;
             } else if self.starting_bold_finder.is_match(item) {
+                log!("bold starts item: {:?}", item);
                 if !started_bold {
                     ended_bold = false;
                     started_bold = true;
                 }
             } else if self.ending_bold_finder.is_match(item) {
+                log!("bold ends item: {:?}", item);
                 if !ended_bold {
                     ended_bold = true;
                     started_bold = false;
@@ -215,6 +241,7 @@ impl MarkdownToHtmlConverter {
 
                 bold_count += 1;
             } else if self.italic_finder.is_match(item) {
+                log!("whole words italic item: {:?}", item);
                 if item.starts_with("*") && item.ends_with("*") {
                     let italic_item_str = format!("{}{}", item.replace("*", ""), " ");
                     html_items.push(em().child(italic_item_str.to_string()).into());
@@ -246,11 +273,13 @@ impl MarkdownToHtmlConverter {
 
                 italic_count += 1;
             } else if self.starting_italic_finder.is_match(item) {
+                log!("italic starts item: {:?}", item);
                 if !started_italic {
                     ended_italic = false;
                     started_italic = true;
                 }
-            } else if self.ending_italic_finder.is_match(item) {
+            } else if self.ending_italic_finder.is_match(item) {         
+                log!("italic ends item: {:?}", item);       
                 if !ended_italic {
                     ended_italic = true;
                     started_italic = false;
@@ -269,20 +298,91 @@ impl MarkdownToHtmlConverter {
                 }                     
 
                 italic_count += 1;
+            } else if self.code_finder.is_match(item) {
+                log!("whole word(s) code");
+                if item.starts_with("`") && item.ends_with("`") {
+                    let code_item_str = format!("{}{}", item.replace("`", ""), " ");
+                    html_items.push(em().child(code_item_str.to_string()).into());
+                } else if item.starts_with("``") && item.ends_with("``") {
+                    let code_item_str = format!("{}{}", item.replace("``", ""), " ");
+                    html_items.push(em().child(code_item_str.to_string()).into());
+                } else { // handles words like super`duper`fun
+                    let mut code_items_list: Vec<String> = vec![];
+                    let mut code_items_elements: Vec<HtmlElement<AnyElement>> = vec![];
+
+                    for caps in self.code_finder.captures_iter(item) {            
+                        for captured_item in caps.iter() {
+                            let match_item = captured_item.unwrap();
+                            let code_item = match_item.as_str();
+            
+                            code_items_list.push(format!("{}", code_item.replace("*", ""))); 
+                        }                           
+                    }
+
+                    let words_split_by_tick = item.split('`').collect::<Vec<&str>>();
+                    for word_or_words in words_split_by_tick {
+                        if code_items_list.contains(&(word_or_words.to_string())) {
+                            code_items_elements.push(code().child(format!("{}", word_or_words)).into());
+                        } else {
+                            code_items_elements.push(span().child(format!("{}", word_or_words)).into());
+                        }
+                    }
+
+                    code_items_elements.push(span().child(" ").into());
+                    html_items.push(span().child(code_items_elements).into());
+                }
+
+                code_count += 1;
+            } else if self.starting_code_finder.is_match(item) {
+                log!("starting code");
+                if !started_code {
+                    ended_code = false;
+                    started_code = true;
+                }
+            } else if self.ending_code_finder.is_match(item) {
+                log!("ending code");
+                if !ended_code {
+                    ended_code = true;
+                    started_code = false;
+                }
+
+                let code_element = code_items[code_count].clone();
+                let ends_with_tick = !item.ends_with("`");
+                if ends_with_tick {
+                    code_element.set_inner_text(code_element.inner_text().trim());
+                }
+                html_items.push(code_element.clone());         
+                if ends_with_tick {
+                    let last_index = item.len() - 1;
+                    let final_char = format!("{} ", item.to_string().as_bytes()[last_index] as char);
+                    html_items.push(span().child(final_char).into());                    
+                }                     
+
+                code_count += 1;
             } else {
                 if ended_bold {
+                    log!("bold ending item: {:?}", item);
                     let txt_item = Cow::from(format!("{}{}", item, " "));
                     html_items.push(span().child(txt_item).into());
 
                     started_bold = false;
                     ended_bold = false;
                 } else if ended_italic {
+                    log!("italic ending item: {:?}", item);
                     let txt_item = Cow::from(format!("{}{}", item, " "));
                     html_items.push(span().child(txt_item).into());
 
                     started_italic = false;
                     ended_italic = false;
-                } else if !started_bold && !started_italic {
+                } else if ended_code {
+                    log!("ended code");
+                    let txt_item = Cow::from(format!("{}{}", item, " "));
+                    html_items.push(span().child(txt_item).into());
+
+                    started_code = false;
+                    ended_code = false;
+                } else if !started_bold && !started_italic && !started_code {
+                    log!("not started any item: {:?}", item);
                     let txt_item = Cow::from(format!("{}{}", item, " "));
                     html_items.push(span().child(txt_item).into());
 
@@ -290,6 +390,8 @@ impl MarkdownToHtmlConverter {
                     ended_bold = false;
                     started_italic = false;
                     ended_italic = false;
+                    started_code = false;
+                    ended_code = false;
                 }
             }
         }
@@ -307,5 +409,4 @@ const TAG_NAME_H2: &str = "h2";
 const TAG_NAME_P: &str = "p";
 const TAG_NAME_OL: &str = "ol";
 const TAG_NAME_UL: &str = "ul";
-// const TAG_NAME_BOLD: &str = "strong";
 const TAG_NAME_NONE: &str = "";
