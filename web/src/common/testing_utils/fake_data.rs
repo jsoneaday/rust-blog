@@ -30,7 +30,7 @@ pub async fn get_fake_post_preview_data() -> Vec<PostPreviewParams> {
 
             `fn go() -> String {
                 // do work
-                "hello world".to_string()
+                "hello world".to_string();
             }`
             "#.to_string()
         }

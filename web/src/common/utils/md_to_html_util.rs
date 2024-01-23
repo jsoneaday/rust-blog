@@ -18,6 +18,7 @@ pub struct MarkdownToHtmlConverter {
     pub code_finder: Regex,
     pub starting_code_finder: Regex,
     pub ending_code_finder: Regex,
+    pub white_space_counter: Regex
 }
 
 impl MarkdownToHtmlConverter {
@@ -36,12 +37,14 @@ impl MarkdownToHtmlConverter {
             ending_italic_finder: Regex::new(r"[\w\s]+\*{1}").unwrap(),
             code_finder: Regex::new(r#"\`[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+\`|\`{2}[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+\`{2}"#).unwrap(),
             starting_code_finder: Regex::new(r#"\`[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+|\`{2}[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+"#).unwrap(),
-            ending_code_finder: Regex::new(r#"[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+\`|[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+\`{2}"#).unwrap()
+            ending_code_finder: Regex::new(r#"[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+\`|[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+\`{2}"#).unwrap(),
+            white_space_counter: Regex::new(r"^\s").unwrap()
         }
     }
 
     pub fn convert_md_to_html(&self, md_string: String) -> Vec<HtmlElement<AnyElement>> {
-        let md_lines = md_string.split('\n').collect::<Vec<&str>>();
+        let cloned_md_string = md_string.clone();
+        let md_lines = cloned_md_string.split('\n').collect::<Vec<&str>>();
         let mut html_lines: Vec<HtmlElement<AnyElement>> = vec![];
 
         let mut ol_started = false;
@@ -52,23 +55,11 @@ impl MarkdownToHtmlConverter {
 
         let mut code_started = false;
         let mut code_ended = false;
-        let mut current_found_code: Vec<HtmlElement<AnyElement>> = vec![];
         let mut code_sections: Vec<HtmlElement<AnyElement>> = vec![];
-        let mut code_section_index = 0;
 
-        for caps in self.code_finder.captures_iter(md_string.as_str()) {  
-            for captured_item in caps.iter() {
-                let match_item = captured_item.unwrap();
-                let code_item = match_item.as_str();
-
-                let code_item_str = format!("{}{}", code_item.replace("`", ""), " ");
-                code_sections.push(code().child(code_item_str.to_string()).into()); 
-                log!("code sections found: {:?}", code_item_str);
-            }                           
-        }   
-
-        for md_line in md_lines {            
-            let line = md_line.trim();
+        for md_line in md_lines.clone() {       
+            let line = md_line.trim();            
+            log!("new line {}", md_line);
             
             if self.ordered_list_finder.is_match(line) {
                 if !ol_started {
@@ -86,16 +77,14 @@ impl MarkdownToHtmlConverter {
                 if !code_started {
                     code_started = true;
                     code_ended = false;
-                }
+                }          
+                code_sections.push(div().inner_html(prefix_nbsp_for_whitespace_count(&self.white_space_counter, md_line.to_owned())).into());
             } else if self.ending_code_finder.is_match(line) {
                 if !code_ended {
                     code_started = false;
                     code_ended = true;
-                }
-                if code_sections.len() > 0 {
-                    html_lines.push(div().child(code_sections[code_section_index].clone()).into());
-                    code_section_index += 1;
-                }
+                }       
+                code_sections.push(div().inner_html(prefix_nbsp_for_whitespace_count(&self.white_space_counter, md_line.to_owned())).into());
             } else {
                 if ol_started {
                     html_lines.push(ol().child(current_found_ol.clone()).into());
@@ -107,12 +96,16 @@ impl MarkdownToHtmlConverter {
                     current_found_ul.clear();
                     ul_started = false;
                 }
-                if code_ended {
+
+                if code_started && !code_ended {           
+                    code_sections.push(div().inner_html(prefix_nbsp_for_whitespace_count(&self.white_space_counter, md_line.to_owned())).into());
+                } else if code_ended {
                     code_started = false;
                     code_ended = false;
-                }
-                
-                if !code_started {
+                    
+                    html_lines.push(code().child(code_sections.clone()).into());
+                    code_sections = vec![];
+                } else if !code_started {
                     let html_view = self.convert_md_to_html_element(line);
                     if let Some(html_view) = html_view {
                         html_lines.push(html_view);
@@ -188,20 +181,17 @@ impl MarkdownToHtmlConverter {
             }                           
         }        
 
-        for caps in self.code_finder.captures_iter(line_to_check) {            
-            log!("code items");
+        for caps in self.code_finder.captures_iter(line_to_check) {       
             for captured_item in caps.iter() {
                 let match_item = captured_item.unwrap();
                 let code_item = match_item.as_str();
 
                 let code_item_str = format!("{}{}", code_item.replace("`", ""), " ");
                 code_items.push(code().child(code_item_str.to_string()).into()); 
-                log!("code item: {:?}", code_item_str);
             }                           
         }       
         
         let line_items = line_to_check.split(' ').collect::<Vec<&str>>();
-        log!("line_items: {:?}", line_items);
 
         let mut bold_count = 0;        
         let mut started_bold = false;
@@ -215,15 +205,11 @@ impl MarkdownToHtmlConverter {
         let mut ended_code = false;
 
         for item in line_items {
-            log!("item: {:?}", item);
             if self.bold_finder.is_match(item) {
-                log!("whole words bold item: {:?}", item);
                 if item.starts_with("**") && item.ends_with("**") {
-                    log!("one word item: {:?}", item);
                     let bold_item_str = format!("{}{}", item.replace("**", ""), " ");
                     html_items.push(strong().child(bold_item_str.to_string()).into());
                 } else { // handles words like super**duper**fun
-                    log!("multiple words item: {:?}", item);
                     let mut bold_items_list: Vec<String> = vec![];
                     let mut bold_items_elements: Vec<HtmlElement<AnyElement>> = vec![];
 
@@ -251,13 +237,11 @@ impl MarkdownToHtmlConverter {
 
                 bold_count += 1;
             } else if self.starting_bold_finder.is_match(item) {
-                log!("bold starts item: {:?}", item);
                 if !started_bold {
                     ended_bold = false;
                     started_bold = true;
                 }
             } else if self.ending_bold_finder.is_match(item) {
-                log!("bold ends item: {:?}", item);
                 if !ended_bold {
                     ended_bold = true;
                     started_bold = false;
@@ -277,7 +261,6 @@ impl MarkdownToHtmlConverter {
 
                 bold_count += 1;
             } else if self.italic_finder.is_match(item) {
-                log!("whole words italic item: {:?}", item);
                 if item.starts_with("*") && item.ends_with("*") {
                     let italic_item_str = format!("{}{}", item.replace("*", ""), " ");
                     html_items.push(em().child(italic_item_str.to_string()).into());
@@ -309,13 +292,11 @@ impl MarkdownToHtmlConverter {
 
                 italic_count += 1;
             } else if self.starting_italic_finder.is_match(item) {
-                log!("italic starts item: {:?}", item);
                 if !started_italic {
                     ended_italic = false;
                     started_italic = true;
                 }
-            } else if self.ending_italic_finder.is_match(item) {         
-                log!("italic ends item: {:?}", item);       
+            } else if self.ending_italic_finder.is_match(item) {   
                 if !ended_italic {
                     ended_italic = true;
                     started_italic = false;
@@ -335,43 +316,34 @@ impl MarkdownToHtmlConverter {
 
                 italic_count += 1;
             } else if self.code_finder.is_match(item) {          
-                log!("whole code item: {}", item);
+                
             } else if self.starting_code_finder.is_match(item) {
-                log!("starting code: {}", item);
                 if !started_code {
                     ended_code = false;
                     started_code = true;
                 }
             } else if self.ending_code_finder.is_match(item) {
-                log!("ending code: {}", item);
                 if !ended_code {
                     ended_code = true;
                     started_code = false;
                 }
             } else {
                 if ended_bold {
-                    log!("bold ending item: {:?}", item);
                     let txt_item = Cow::from(format!("{}{}", item, " "));
                     html_items.push(span().child(txt_item).into());
 
                     started_bold = false;
                     ended_bold = false;
                 } else if ended_italic {
-                    log!("italic ending item: {:?}", item);
                     let txt_item = Cow::from(format!("{}{}", item, " "));
                     html_items.push(span().child(txt_item).into());
 
                     started_italic = false;
                     ended_italic = false;
                 } else if ended_code {
-                    log!("ended code: {}", item);
-                    // let txt_item = Cow::from(format!("{}{}", item, " "));
-                    // html_items.push(span().child(txt_item).into());
-
                     started_code = false;
                     ended_code = false;
                 } else if !started_bold && !started_italic && !started_code {
-                    log!("not started any item: {:?}", item);
                     let txt_item = Cow::from(format!("{}{}", item, " "));
                     html_items.push(span().child(txt_item).into());
 
@@ -391,6 +363,16 @@ impl MarkdownToHtmlConverter {
             div().child(html_items).into()
         }        
     }
+}
+
+fn prefix_nbsp_for_whitespace_count(white_space_counter: &Regex, affected_txt: String) -> String {
+    let mut inner_txt = affected_txt.clone();
+    let whitespace_count = white_space_counter.find_iter(affected_txt.clone().as_str()).count();
+    log!("whitespace count, {}, for line: {}", whitespace_count, affected_txt);
+    for _ in 0..whitespace_count {
+        inner_txt = format!("{}{}", "&nbsp;", inner_txt);
+    }
+    inner_txt
 }
 
 const TAG_NAME_H1: &str = "h1";
