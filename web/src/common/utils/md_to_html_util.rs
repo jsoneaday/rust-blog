@@ -78,13 +78,13 @@ impl MarkdownToHtmlConverter {
                     code_started = true;
                     code_ended = false;
                 }          
-                code_sections.push(div().inner_html(prefix_nbsp_for_whitespace_count(&self.white_space_counter, md_line.to_owned())).into());
+                code_sections.push(div().inner_html(prefix_nbsp_for_whitespace_count(md_line.to_owned())).into());
             } else if self.ending_code_finder.is_match(line) {
                 if !code_ended {
                     code_started = false;
                     code_ended = true;
                 }       
-                code_sections.push(div().inner_html(prefix_nbsp_for_whitespace_count(&self.white_space_counter, md_line.to_owned())).into());
+                code_sections.push(div().inner_html(prefix_nbsp_for_whitespace_count(md_line.to_owned())).into());
             } else {
                 if ol_started {
                     html_lines.push(ol().child(current_found_ol.clone()).into());
@@ -98,7 +98,7 @@ impl MarkdownToHtmlConverter {
                 }
 
                 if code_started && !code_ended {           
-                    code_sections.push(div().inner_html(prefix_nbsp_for_whitespace_count(&self.white_space_counter, md_line.to_owned())).into());
+                    code_sections.push(div().inner_html(prefix_nbsp_for_whitespace_count(md_line.to_owned())).into());
                 } else if code_ended {
                     code_started = false;
                     code_ended = false;
@@ -365,11 +365,17 @@ impl MarkdownToHtmlConverter {
     }
 }
 
-fn prefix_nbsp_for_whitespace_count(white_space_counter: &Regex, affected_txt: String) -> String {
+fn prefix_nbsp_for_whitespace_count(affected_txt: String) -> String {
+    let whitespace_count: usize = affected_txt
+        .chars()
+        .take_while(|ch| ch.is_whitespace() && *ch != '\n')
+        .map(|ch| ch.len_utf8())
+        .sum();
+    let mut whitespace_count_half = whitespace_count as f32 / 2.0;
+    whitespace_count_half = whitespace_count_half.round();
+
     let mut inner_txt = affected_txt.clone();
-    let whitespace_count = white_space_counter.find_iter(affected_txt.clone().as_str()).count();
-    log!("whitespace count, {}, for line: {}", whitespace_count, affected_txt);
-    for _ in 0..whitespace_count {
+    for _ in 0..(whitespace_count_half as i32) {
         inner_txt = format!("{}{}", "&nbsp;", inner_txt);
     }
     inner_txt
