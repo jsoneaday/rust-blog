@@ -4,18 +4,22 @@ use crate::common::components::layout::Layout;
 
 #[component]
 pub fn Admin() -> impl IntoView {
+    let location = use_location();
+    let (current_selected_nav, set_current_selected_nav) = create_signal(location.pathname);
+    
     view! {
-        <Layout>
+        <Layout>            
             <nav class="home-menu">
+                <h2>Administration</h2>
                 <ul>
                     <li>
-                        <A href="mail">"Mail"</A>
+                        <a href="mail" class=("a-selected", move || current_selected_nav().get() == "mail" )>"Mail"</a>
                     </li>
                     <li>
-                        <A href="addpost">"Add Post"</A>
+                        <a href="addpost" class=("a-selected", move || current_selected_nav().get() == "addpost" )>"Add Post"</a>
                     </li>
                     <li>
-                        <A href="mngpost">"Manage Posts"</A>
+                        <a href="mngpost" class=("a-selected", move || current_selected_nav().get() == "mngpost" )>"Manage Posts"</a>
                     </li>
                 </ul>
             </nav>

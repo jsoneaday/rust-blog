@@ -142,7 +142,7 @@ ul {
   padding: 0;
 }
 li {
-  padding: 0;
+  padding-bottom: 1em;
 }
 
 a {
@@ -162,6 +162,10 @@ a.nostyle:visited {
   text-decoration: inherit;
   color: inherit;
   cursor: auto;
+}
+
+a-selected {
+  color: var(--secondary-cl);
 }
 
 button,
