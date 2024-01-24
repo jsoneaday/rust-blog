@@ -13,13 +13,13 @@ pub fn Admin() -> impl IntoView {
                 <h2>Administration</h2>
                 <ul>
                     <li>
-                        <a href="mail" class=("a-selected", move || current_selected_nav().get() == "mail" )>"Mail"</a>
+                        <a href="/admin/mail" class=("a-selected", move || current_selected_nav().get() == "mail" )>"Mail"</a>
                     </li>
                     <li>
-                        <a href="addpost" class=("a-selected", move || current_selected_nav().get() == "addpost" )>"Add Post"</a>
+                        <a href="/admin/addpost" class=("a-selected", move || current_selected_nav().get() == "addpost" )>"Add Post"</a>
                     </li>
                     <li>
-                        <a href="mngpost" class=("a-selected", move || current_selected_nav().get() == "mngpost" )>"Manage Posts"</a>
+                        <a href="/admin/mngpost" class=("a-selected", move || current_selected_nav().get() == "mngpost" )>"Manage Posts"</a>
                     </li>
                 </ul>
             </nav>
