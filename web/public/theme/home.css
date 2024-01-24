@@ -17,4 +17,5 @@
   align-self: top;
   background-color: var(--panel-bg-cl);
   padding: 1.5em;
+  padding-top: 0;
 }

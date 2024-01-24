@@ -164,7 +164,7 @@ a.nostyle:visited {
   cursor: auto;
 }
 
-a-selected {
+.a-selected {
   color: var(--secondary-cl);
 }
 
