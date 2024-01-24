@@ -1,6 +1,14 @@
 pub mod pages {
-    pub mod home;
-    pub mod admin;
+    pub mod home {
+        pub mod home;
+    }
+    pub mod administrator {
+        pub mod admin;
+        pub mod mail;
+        pub mod add_post;
+        pub mod manage_post;
+    }
+    pub mod page_not_found;
 }
 pub mod common {
     pub mod testing_utils {
