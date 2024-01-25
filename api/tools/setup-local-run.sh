@@ -13,13 +13,15 @@ fi
 
 echo "build new images"
 docker compose -f docker-compose.dev.yml up -d --build
+echo "wait 60 for db setup to complete"
+sleep 30
 
 echo "run sqlx migrations"
-sqlx database create --database-url postgres://syntaxmakers:syntaxmakers@localhost:5433/syntaxmakers
-sqlx migrate run --database-url postgres://syntaxmakers:syntaxmakers@localhost:5433/syntaxmakers
+sqlx database create --database-url postgres://rustblog:rustblog@localhost:5433/rustblog
+sqlx migrate run --database-url postgres://rustblog:rustblog@localhost:5433/rustblog
 
 echo "setup test data"
-psql -h localhost -p 5433 -d syntaxmakers -U syntaxmakers -f ./tools/setup-dev-data.sql
+psql postgres://rustblog:rustblog@localhost:5433/rustblog -f ./tools/setup-dev-data.sql
 
 echo "start running tests"
 cargo test -- --nocapture

@@ -5,8 +5,9 @@ use crate::common::repository::{post::models::Post, base::{DbRepo, ConnGetter, E
 mod internal {
     use super::*;
 
-    pub async fn insert_post(conn: &Pool<Postgres>, message: String, admin_id: i64) -> Result<EntityId, Error> {
-        query_as::<_, EntityId>("insert into post (message, admin_id) values ($1, $2) returning id")
+    pub async fn insert_post(conn: &Pool<Postgres>, title: String, message: String, admin_id: i64) -> Result<EntityId, Error> {
+        query_as::<_, EntityId>("insert into post (title, message, admin_id) values ($1, $2, $3) returning id")
+            .bind(title)
             .bind(message)
             .bind(admin_id)
             .fetch_one(conn)
@@ -24,13 +25,13 @@ mod internal {
 
 #[async_trait]
 pub trait InsertPostFn {
-    async fn insert_post(&self, message: String, admin_id: i64) -> Result<EntityId, Error>;
+    async fn insert_post(&self, title: String, message: String, admin_id: i64) -> Result<EntityId, Error>;
 }
 
 #[async_trait]
 impl InsertPostFn for DbRepo {
-    async fn insert_post(&self, message: String, admin_id: i64) -> Result<EntityId, Error> {
-        internal::insert_post(self.get_conn(), message, admin_id).await
+    async fn insert_post(&self, title: String, message: String, admin_id: i64) -> Result<EntityId, Error> {
+        internal::insert_post(self.get_conn(), title, message, admin_id).await
     }
 }
 

@@ -15,4 +15,7 @@ pub mod routes {
     pub mod authentication {
         pub mod test_authentication_routes;
     }
+    pub mod post {
+        pub mod test_post_routes;
+    }
 }

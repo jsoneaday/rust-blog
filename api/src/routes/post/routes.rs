@@ -10,7 +10,7 @@ pub async fn create_post<T: InsertPostFn + Repository, U: Authenticator>(app_dat
         return Err(StrippedDownError::AuthenticationFailed);
     }
 
-    let entity_result = app_data.repo.insert_post(new_post.message.clone(), new_post.admin_id).await;
+    let entity_result = app_data.repo.insert_post(new_post.title.clone(), new_post.message.clone(), new_post.admin_id).await;
 
     match entity_result {
         Ok(entity) => Ok(OutputId { id: entity.id }),

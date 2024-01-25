@@ -1,0 +1,1 @@
+insert into administrator (user_name, email, password) values ('dave', 'dharric@live.com', '123');

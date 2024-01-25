@@ -2,7 +2,7 @@ use actix_web::web::Json;
 use fake::{faker::internet::en::Username, Fake};
 use rust_blog_api::{
     common::{repository::base::{DbRepo, Repository}, authentication::auth_service::{AuthService, STANDARD_ACCESS_TOKEN_EXPIRATION}}, 
-    routes::{authentication::{routes::refresh_access_token, models::RefreshToken}, auth_helper::get_claims_from_token_body, route_utils::get_header_strings}
+    routes::{authentication::{routes::{login, refresh_access_token}, models::{LoginCredential, RefreshToken}}, auth_helper::get_claims_from_token_body, route_utils::get_header_strings}
 };
 use rust_blog_api::common_test::fixtures::{get_app_data, get_fake_httprequest_with_bearer_token};
 
@@ -30,6 +30,24 @@ async fn test_refresh_access_token_is_valid() {
     }), req).await;
 
     let claims = get_claims_from_token_body(&app_data.auth_keys.decoding_key, httpresponse).await;
+
+    assert!(claims.sub == user_name);
+    assert!(claims.exp >= STANDARD_ACCESS_TOKEN_EXPIRATION as usize);
+}
+
+#[tokio::test]
+async fn test_login_logs_in_successfully() {
+    let repo = DbRepo::init().await;
+    let auth_service = AuthService;
+    let app_data = get_app_data(repo, auth_service).await;
+    let user_name = "dave";
+
+    let login_resp = login(app_data.clone(), Json(LoginCredential {
+        email: "dharric@live.com".to_string(),
+        password: "123".to_string()
+    })).await;
+
+    let claims = get_claims_from_token_body(&app_data.auth_keys.decoding_key, login_resp).await;
 
     assert!(claims.sub == user_name);
     assert!(claims.exp >= STANDARD_ACCESS_TOKEN_EXPIRATION as usize);

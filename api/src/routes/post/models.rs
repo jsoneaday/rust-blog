@@ -7,6 +7,7 @@ use crate::common::repository::post::models::Post;
 
 #[derive(Deserialize)]
 pub struct NewPost {
+    pub title: String,
     pub message: String,
     pub admin_id: i64
 }

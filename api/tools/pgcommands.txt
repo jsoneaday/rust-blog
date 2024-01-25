@@ -1,1 +1,0 @@
-psql -h localhost -p 5433 -d rustblog -U rustblog
