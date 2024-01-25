@@ -3,10 +3,12 @@ pub mod pages {
         pub mod home;
     }
     pub mod administrator {
+        pub mod post {
+            pub mod add_post;
+            pub mod manage_post;
+        }
         pub mod admin;
-        pub mod mail;
-        pub mod add_post;
-        pub mod manage_post;
+        pub mod mail;        
     }
     pub mod page_not_found;
 }
