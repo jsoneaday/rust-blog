@@ -13,6 +13,7 @@ create table post (
     "id" bigserial primary key,
     "created_at" timestamptz(3) not null default current_timestamp,
     "updated_at" timestamptz(3) not null default current_timestamp,
+    "title" varchar(250) not null,
     "message" text not null,
     "admin_id" bigserial not null,
 

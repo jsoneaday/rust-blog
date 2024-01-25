@@ -1,7 +1,6 @@
 use leptos::*;
 use leptos::logging::log;
 use leptos_router::*;
-use web_sys::console::log;
 use crate::common::components::layout::Layout;
 
 const MAIL: &str = "/admin/mail";

@@ -1,5 +1,6 @@
 use leptos::*;
 use leptos_router::*;
+use crate::common::api::api_service::ApiService;
 use crate::pages::administrator::add_post::AddPost;
 use crate::pages::administrator::manage_post::ManagePosts;
 use crate::pages::home::home::Home;
@@ -8,7 +9,8 @@ use crate::pages::page_not_found::PageNotFound;
 
 #[component]
 pub fn App() -> impl IntoView {
-
+    provide_context(create_signal(ApiService::new()));
+    
     view! {
         <Router>
             <main>

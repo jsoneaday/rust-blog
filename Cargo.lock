@@ -3073,10 +3073,12 @@ name = "rust-blog-web"
 version = "0.1.0"
 dependencies = [
  "console_error_panic_hook",
+ "derive_more",
  "leptos",
  "leptos_meta",
  "leptos_router",
  "regex",
+ "reqwest",
  "serde",
  "serde_json",
 ]

@@ -24,6 +24,10 @@ pub mod common {
             pub mod post_preview;
         }        
     }
+    pub mod api {
+        pub mod api_service;
+        pub mod models;
+    }
 }
 pub mod app;
 

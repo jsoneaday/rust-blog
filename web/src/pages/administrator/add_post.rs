@@ -1,16 +1,33 @@
 use leptos::*;
 use leptos::logging::log;
-use leptos_router::*;
+use crate::common::api::models::NewPost;
+use crate::common::api::api_service::ApiService;
 
 #[component]
 pub fn AddPost() -> impl IntoView {
     let (title, set_title) = create_signal("".to_string());
     let (content, set_content) = create_signal("".to_string());
+    let (api_service, _) = expect_context::<(ReadSignal<ApiService>, WriteSignal<ApiService>)>();
+
+    let submit_post = create_action(move |new_post: &NewPost| {
+        let input = new_post.clone();
+        async move { 
+            let id_res = api_service().create_post(input).await;
+            if id_res.is_ok() { 
+                log!("id result {:?}",  id_res.unwrap());
+            } else {
+                log!("id result {:?}",  id_res.err().unwrap());
+            }            
+        }        
+    });
 
     view! {
         <div class="home-content">
             <h2>"Add Post"</h2>
-            <Form method="post" action="/dosomething">
+            <form on:submit=move |ev| {
+                ev.prevent_default();
+                submit_post.dispatch(NewPost { message: content(), admin_id: 1 });
+            }>
                 <section class="form-section">
                     <label for="title">
                         "Title"                    
@@ -18,6 +35,7 @@ pub fn AddPost() -> impl IntoView {
                     <input 
                         type="text" 
                         id="title"
+                        name="title"
                         on:input=move |ev| {
                             log!("target value: {}", event_target_value(&ev));
                             set_title(event_target_value(&ev));
@@ -29,9 +47,21 @@ pub fn AddPost() -> impl IntoView {
                     <label for="content">
                         "Content"                    
                     </label>
-                    <textarea />
+                    <textarea
+                        id="content"
+                        name="content"
+                        prop:value=move || content()
+                        on:input=move |ev| {
+                            set_content(event_target_value(&ev));
+                        }
+                    >
+                        {untrack(move || content())}
+                    </textarea>
                 </section>
-            </Form>
+                <section class="form-section">
+                    <button type="submit" class="primary-btn" >"Post"</button>
+                </section>
+            </form>
         </div>
     }
 }
