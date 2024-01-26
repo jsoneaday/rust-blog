@@ -13,7 +13,7 @@ pub fn Login() -> impl IntoView {
         let credentials = credentials.clone();
 
         async move {
-            let login_res = api_service().login(&credentials).await;
+            let login_res = api_service.get_untracked().login(&credentials).await;
             match login_res {
                 Ok(token) => {
                     set_auth_token(token.clone());
