@@ -26,7 +26,7 @@ pub fn AddPost() -> impl IntoView {
             <h2>"Add Post"</h2>
             <form on:submit=move |ev| {
                 ev.prevent_default();
-                submit_post.dispatch(NewPost { message: content(), admin_id: 1 });
+                submit_post.dispatch(NewPost { title: title(), message: content(), admin_id: 1 });
             }>
                 <section class="form-section">
                     <label for="title">
