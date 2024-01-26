@@ -1,5 +1,6 @@
 use super::models::LoginCredential;
 use super::models::{OutputId, NewPost};
+use reqwest::header::HeaderMap;
 use reqwest::{Client, StatusCode};
 use reqwest::Error;
 
@@ -17,8 +18,12 @@ impl ApiService {
         }
     }
 
-    pub async fn create_post(&self, new_post: &NewPost) -> Result<OutputId, Error> {
+    pub async fn create_post(&self, new_post: &NewPost, token: String) -> Result<OutputId, Error> {
+        let mut headers = HeaderMap::new();
+        headers.insert("Authorization", format!("Bearer {}", token).parse().unwrap());
+
         self.client.post(format!("{}/{}", API_DEV_URL, "post"))
+            .headers(headers)
             .json(new_post)
             .send()
             .await

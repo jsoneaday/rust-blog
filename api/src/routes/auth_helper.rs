@@ -2,19 +2,19 @@ use actix_http::body::to_bytes;
 use actix_web::{web::Data, HttpRequest, HttpResponse};
 use jsonwebtoken::DecodingKey;
 use log::{info, error};
-use crate::{common::{repository::base::Repository, authentication::auth_service::{Authenticator, decode_token, Claims}}, routes::route_utils::get_header_strings};
+use crate::{common::{repository::{administrator::repo::QueryAdministratorFn, base::Repository}, authentication::auth_service::{Authenticator, decode_token, Claims}}, routes::route_utils::get_header_strings};
 use super::app_state::AppState;
 
-pub async fn check_is_authenticated<T: Repository, U: Authenticator>(
+pub async fn check_is_authenticated<T: QueryAdministratorFn + Repository, U: Authenticator>(
     app_data: Data<AppState<T, U>>,
+    admin_id: i64,
     req: HttpRequest
 ) -> bool {
-    #[allow(unused)]
-    let mut user_name: String = "".to_string();
+    let admin = app_data.repo.query_administrator(admin_id).await.unwrap().unwrap();
     
     let headers = get_header_strings(req.headers());
     info!("headers {:?}", headers);
-    let is_authenticated_result = app_data.auth_service.is_authenticated(user_name, headers, &app_data.auth_keys.decoding_key).await;
+    let is_authenticated_result = app_data.auth_service.is_authenticated(admin.user_name, headers, &app_data.auth_keys.decoding_key).await;
     match is_authenticated_result {
         Ok(result) => match result {
             true => {

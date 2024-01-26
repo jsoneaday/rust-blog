@@ -8,7 +8,7 @@ pub fn Login() -> impl IntoView {
     let (email, set_email) = create_signal("dharric@live.com".to_string());
     let (password, set_password) = create_signal("123".to_string());
     let api_service = expect_context::<ReadSignal<ApiService>>();
-    let (auth_token, set_auth_token) = expect_context::<(ReadSignal<String>, WriteSignal<String>)>();
+    let (_auth_token, set_auth_token) = expect_context::<(ReadSignal<String>, WriteSignal<String>)>();
     let submit_post = create_action(move |credentials: &LoginCredential| {
         let credentials = credentials.clone();
 

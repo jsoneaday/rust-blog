@@ -1,10 +1,10 @@
 use actix_web::{web::{Json, Data}, HttpRequest};
 use log::error;
-use crate::{routes::{base_model::OutputId, stripped_down_error::StrippedDownError, app_state::AppState, auth_helper::check_is_authenticated}, common::{repository::{post::repo::{InsertPostFn, QueryPostsFn}, base::Repository}, authentication::auth_service::Authenticator}};
+use crate::{routes::{base_model::OutputId, stripped_down_error::StrippedDownError, app_state::AppState, auth_helper::check_is_authenticated}, common::{repository::{administrator::repo::QueryAdministratorFn, base::Repository, post::repo::{InsertPostFn, QueryPostsFn}}, authentication::auth_service::Authenticator}};
 use super::models::{NewPost, PostResponder, convert, PostResponders};
 
-pub async fn create_post<T: InsertPostFn + Repository, U: Authenticator>(app_data: Data<AppState<T, U>>, new_post: Json<NewPost>, req: HttpRequest) -> Result<OutputId, StrippedDownError> {
-    let is_authenticated = check_is_authenticated(app_data.clone(), req).await;
+pub async fn create_post<T: InsertPostFn + QueryAdministratorFn + Repository, U: Authenticator>(app_data: Data<AppState<T, U>>, new_post: Json<NewPost>, req: HttpRequest) -> Result<OutputId, StrippedDownError> {
+    let is_authenticated = check_is_authenticated(app_data.clone(), new_post.admin_id, req).await;
     if !is_authenticated {
         error!("Authentication Failed");
         return Err(StrippedDownError::AuthenticationFailed);
