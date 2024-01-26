@@ -1,13 +1,19 @@
 .modal-container {
-  outline: 0;
-  top: 5em;
-  width: 400px;
-  height: 400px;
-  padding: 2em;
-  border: solid 1px var(--border-cl);
-  border-radius: 5px;
-  margin: auto;
-  margin-top: 5em;
-  opacity: 1;
-  background-color: var(--bg-cl);
+  position: fixed;
+  z-index: 10;
+  width: 100vw;
+  height: 100vh;
+  top: 0;
+  left: 0;
+  background: rgba(0, 0, 0, 0.85);
+}
+
+.modal-content {
+  z-index: 20;
+  max-height: 50vh;
+  min-height: 50vh;
+  max-width: 50vw;
+  min-width: 50vw;
+  top: 2em;
+  overflow-y: auto;
 }

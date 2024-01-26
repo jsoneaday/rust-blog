@@ -8,7 +8,7 @@ pub fn AddPost() -> impl IntoView {
     let (title, set_title) = create_signal("".to_string());
     let (content, set_content) = create_signal("".to_string());
     let (api_service, _) = expect_context::<(ReadSignal<ApiService>, WriteSignal<ApiService>)>();
-
+    
     let submit_post = create_action(move |new_post: &NewPost| {
         let input = new_post.clone();
         async move { 
@@ -59,7 +59,7 @@ pub fn AddPost() -> impl IntoView {
                     </textarea>
                 </section>
                 <section class="form-section">
-                    <button type="submit" class="primary-btn" >"Post"</button>
+                    <button type="submit" class="primary-btn" >"Post"</button>                    
                 </section>
             </form>
         </div>

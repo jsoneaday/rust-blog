@@ -2,6 +2,8 @@ use leptos::*;
 use leptos::logging::log;
 use leptos_router::*;
 use crate::common::components::layout::Layout;
+use crate::common::components::authentication::login::Login;
+use crate::common::components::modal::Modal;
 
 const MAIL: &str = "/admin/mail";
 const ADD_POST: &str = "/admin/addpost";
@@ -10,8 +12,9 @@ const MNG_POST: &str = "/admin/mngpost";
 #[component]
 pub fn Admin() -> impl IntoView {
     let location = use_location();
-    log!("pathname: {}", location.pathname.get());
-    let (current_selected_nav, set_current_selected_nav) = create_signal(location.pathname.get());
+    log!("pathname: {}", location.pathname.get_untracked());
+    let (current_selected_nav, set_current_selected_nav) = create_signal(location.pathname.get_untracked());
+    let (dialog_open, set_dialog_open) = create_signal(false);    
     
     view! {
         <Layout>            
@@ -32,6 +35,15 @@ pub fn Admin() -> impl IntoView {
                         <a href={MNG_POST} class=("a-selected", move || current_selected_nav() == MNG_POST ) on:click=move |_| {
                             set_current_selected_nav(MNG_POST.to_string());
                         }>"Manage Posts"</a>
+                    </li>
+                    <li>
+                        <button class="" on:click=move |_| {
+                            set_dialog_open(!dialog_open());
+                            log!("try open dialog");
+                        }>"Login"</button>
+                        <Modal open_state=dialog_open set_open_state=set_dialog_open>
+                            <Login />
+                        </Modal>
                     </li>
                 </ul>
             </nav>

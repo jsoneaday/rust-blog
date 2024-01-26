@@ -24,5 +24,6 @@ pub fn App() -> impl IntoView {
                 </Routes>
             </main>
         </Router>
+        <div id="portal_root"></div>
     }
 }

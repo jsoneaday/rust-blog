@@ -25,6 +25,10 @@ pub mod common {
             pub mod post_detail;
             pub mod post_preview;
         }        
+        pub mod authentication {
+            pub mod login;
+        }
+        pub mod modal;
     }
     pub mod api {
         pub mod api_service;
