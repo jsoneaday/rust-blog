@@ -7,12 +7,12 @@ use crate::common::api::api_service::ApiService;
 pub fn AddPost() -> impl IntoView {
     let (title, set_title) = create_signal("".to_string());
     let (content, set_content) = create_signal("".to_string());
-    let (api_service, _) = expect_context::<(ReadSignal<ApiService>, WriteSignal<ApiService>)>();
+    let api_service = expect_context::<ReadSignal<ApiService>>();
     
     let submit_post = create_action(move |new_post: &NewPost| {
         let input = new_post.clone();
         async move { 
-            let id_res = api_service().create_post(input).await;
+            let id_res = api_service().create_post(&input).await;
             if id_res.is_ok() { 
                 log!("id result {:?}",  id_res.unwrap());
             } else {

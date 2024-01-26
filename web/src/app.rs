@@ -8,7 +8,9 @@ use crate::pages::page_not_found::PageNotFound;
 
 #[component]
 pub fn App() -> impl IntoView {
-    provide_context(create_signal(ApiService::new()));
+    let (api_service, _) = create_signal(ApiService::new());
+    provide_context(api_service);
+    provide_context(create_signal("".to_string()));
     
     view! {
         <Router>

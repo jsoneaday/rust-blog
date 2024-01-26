@@ -10,10 +10,12 @@
 
 .modal-content {
   z-index: 20;
-  max-height: 50vh;
-  min-height: 50vh;
-  max-width: 50vw;
-  min-width: 50vw;
-  top: 2em;
-  overflow-y: auto;
+  width: 25%;
+  top: 4em;
+}
+
+@media only screen and (max-device-width: 480px) {
+  .modal-content {
+    width: 100%;
+  }
 }

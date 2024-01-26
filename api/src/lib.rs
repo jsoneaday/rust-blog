@@ -22,7 +22,7 @@ pub mod common {
 }
 pub mod routes {
     pub mod route_configs {
-        pub mod user_configs;
+        pub mod admin_configs;
         pub mod post_configs;
     }
     pub mod authentication {
@@ -51,7 +51,7 @@ use common::{repository::base::{DbRepo, Repository}, authentication::auth_servic
 use dotenv::dotenv;
 use openssl::ssl::{SslAcceptorBuilder, SslAcceptor, SslMethod, SslFiletype};
 use crate::routes::route_configs::post_configs::post_configs;
-use crate::routes::route_configs::user_configs::user_configs;
+use crate::routes::route_configs::admin_configs::admin_configs;
 
 #[allow(unused)]
 fn ssl_builder() -> SslAcceptorBuilder {
@@ -95,7 +95,7 @@ pub async fn run() -> std::io::Result<()> {
             )
             .service(
                 web::scope("/v1")
-                    .configure(user_configs)
+                    .configure(admin_configs)
                     .configure(post_configs)
             )
     })
