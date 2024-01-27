@@ -7,6 +7,7 @@ pub async fn get_fake_post_preview_data() -> Vec<PostPreviewParams> {
             title: "Rust is nice".to_string(),
             content: r"# Let's learn Rust
             *Here* is a super*duper*list of todo *items*
+            [This is the link name](https://helloworld.com)
             1. Buy milk
             2. Walk dog
             3. Run

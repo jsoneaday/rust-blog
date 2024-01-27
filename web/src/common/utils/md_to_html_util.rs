@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 use regex::Regex;
-use leptos::{logging::log, HtmlElement, html::{AnyElement, div, h1, h2, p, strong, span, code, em, ol, ul, li}};
+use leptos::{logging::log, HtmlElement, html::{AnyElement, A, div, h1, h2, p, strong, a, span, code, em, ol, ul, li}};
 
 pub struct MarkdownToHtmlConverter {
     pub heading_level_1_finder: Regex,
@@ -18,8 +18,19 @@ pub struct MarkdownToHtmlConverter {
     pub code_finder: Regex,
     pub starting_code_finder: Regex,
     pub ending_code_finder: Regex,
-    pub white_space_counter: Regex
+    pub white_space_counter_finder: Regex,
+    /// Regex to find a markdown link
+    pub link_finder: Regex,
+    /// Regex to find an entire line, start to finish, that is a link
+    pub entire_line_is_link_finder: Regex,
+    /// Will match only the name portion of a link markdown
+    pub link_name_finder: Regex,
+    /// Will match only the url portion of a link markdown
+    pub link_url_finder: Regex
 }
+
+const LINK_NAME_REGEX: &str = r"\[(.+)\]";
+const LINK_URL_REGEX: &str = r#"\(([^ ]+?)\)"#;
 
 impl MarkdownToHtmlConverter {
     pub fn new() -> Self {
@@ -38,7 +49,11 @@ impl MarkdownToHtmlConverter {
             code_finder: Regex::new(r#"\`[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+\`|\`{2}[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+\`{2}"#).unwrap(),
             starting_code_finder: Regex::new(r#"\`[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+|\`{2}[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+"#).unwrap(),
             ending_code_finder: Regex::new(r#"[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+\`|[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+\`{2}"#).unwrap(),
-            white_space_counter: Regex::new(r"^\s").unwrap()
+            white_space_counter_finder: Regex::new(r"^\s").unwrap(),
+            link_finder: Regex::new(r#"\[(.+)\]\(([^ ]+?)( "(.+)")?\)"#).unwrap(),
+            entire_line_is_link_finder: Regex::new(r#"^\[(.+)\]\(([^ ]+?)( "(.+)")?\)$"#).unwrap(),
+            link_name_finder: Regex::new(LINK_NAME_REGEX).unwrap(),
+            link_url_finder: Regex::new(LINK_URL_REGEX).unwrap(),
         }
     }
 
@@ -58,8 +73,7 @@ impl MarkdownToHtmlConverter {
         let mut code_sections: Vec<HtmlElement<AnyElement>> = vec![];
 
         for md_line in md_lines.clone() {       
-            let line = md_line.trim();            
-            log!("new line {}", md_line);
+            let line = md_line.trim();       
             
             if self.ordered_list_finder.is_match(line) {
                 if !ol_started {
@@ -128,6 +142,8 @@ impl MarkdownToHtmlConverter {
             self.get_html_element_from_md(&self.ordered_list_finder, md_line, TAG_NAME_OL)
         } else if self.unordered_list_finder.is_match(md_line) {
             self.get_html_element_from_md(&self.unordered_list_finder, md_line, TAG_NAME_UL)
+        } else if self.link_finder.is_match(md_line) {            
+            self.get_html_element_from_md(&self.link_finder, md_line, TAG_NAME_A)
         } else if self.paragraph_finder.is_match(md_line) {
             self.get_html_element_from_md(&self.paragraph_finder, md_line, TAG_NAME_P)
         } else {
@@ -148,6 +164,8 @@ impl MarkdownToHtmlConverter {
         } else if replacement_html == TAG_NAME_UL {
             let new_line = regex.replace(line_to_check, "");
             Some(li().child(new_line).into())
+        } else if replacement_html == TAG_NAME_A {                        
+            self.get_html_from_md_link(line_to_check, replacement_html)
         } else if replacement_html == TAG_NAME_P {
             Some(self.get_html_element_inside_md(line_to_check, TAG_NAME_P))
         } else {
@@ -235,7 +253,7 @@ impl MarkdownToHtmlConverter {
                     html_items.push(span().child(bold_items_elements).into());
                 }
 
-                bold_count += 1;
+                bold_count += 1; // todo: can I remove this?
             } else if self.starting_bold_finder.is_match(item) {
                 if !started_bold {
                     ended_bold = false;
@@ -363,6 +381,38 @@ impl MarkdownToHtmlConverter {
             div().child(html_items).into()
         }        
     }
+
+    fn get_html_from_md_link(&self, line_to_check: &str, replacement_html: &str) -> Option<HtmlElement<AnyElement>> {
+        if self.entire_line_is_link_finder.is_match(line_to_check) {
+            let link_name = self.link_name_finder.captures(line_to_check).unwrap().get(0).unwrap().as_str();
+            let link_url = self.link_url_finder.captures(line_to_check).unwrap().get(0).unwrap().as_str();
+            let link_name_content = get_only_matching_content("[", "]", link_name);
+            let link_url_content = get_only_matching_content("(", ")", link_url);
+
+            let anchor = setup_anchor(&link_url_content, &link_name_content);
+            Some(div().child(anchor).into())
+        } else {
+            let mut link_names_list: Vec<String> = get_list_of_regex_matching_content(&self.link_name_finder, "[", "]", line_to_check);
+            let mut link_url_list: Vec<String> = get_list_of_regex_matching_content(&self.link_url_finder, "(", ")", line_to_check);
+            let mut non_match_sections: Vec<String> = get_list_of_non_matching_content(&self.link_finder, line_to_check);
+            let mut link_items_elements: Vec<HtmlElement<AnyElement>> = vec![];
+
+            let mut index = 0;
+            let mut elements: Vec<HtmlElement<AnyElement>> = vec![];
+            for non_match_section in non_match_sections {
+                let non_matcher = span().child(format!("{} ", non_match_section));
+                let next_link_name = format!("{} ", link_names_list[index]);
+                let next_link_url = format!("{} ", link_url_list[index]);
+                let anchor = setup_anchor(&next_link_url, &next_link_name);
+                
+                elements.push(non_matcher.into());
+                elements.push(anchor.into());                        
+
+                index += 1;
+            }
+            Some(div().child(elements).into())
+        }
+    }
 }
 
 fn prefix_nbsp_for_whitespace_count(affected_txt: String) -> String {
@@ -381,9 +431,52 @@ fn prefix_nbsp_for_whitespace_count(affected_txt: String) -> String {
     inner_txt
 }
 
+/// This function strips out markdown tags and returns only the affected strings
+/// * `md_start_str` - Beginning characters of a regex matching string
+/// * `md_end_str` - Ending characters of a regex matching string
+/// * `matching_str` - Matched string to extract content from
+fn get_only_matching_content(md_start_str: &str, md_end_str: &str, matching_str: &str) -> String {
+    let mut content = matching_str.replace(md_start_str, "");
+    content = content.replace(md_end_str, "");
+    content
+}
+
+fn get_list_of_regex_matching_content(finder: &Regex, start_md_remove_str: &str, end_md_remove_str: &str, line: &str) -> Vec<String> {
+    let mut list: Vec<String> = vec![];
+
+    for caps in finder.captures_iter(line) {            
+        for captured_item in caps.iter() {
+            let match_item = captured_item.unwrap();
+            let link_item = match_item.as_str();
+
+            let mut cleaned_content = format!("{}", link_item.replace(start_md_remove_str, ""));
+            cleaned_content = format!("{}", link_item.replace(end_md_remove_str, ""));
+            list.push(cleaned_content); 
+        }                           
+    }
+    list
+}
+
+fn get_list_of_non_matching_content(finder: &Regex, line: &str) -> Vec<String> {
+    let mut list: Vec<String> = vec![];
+
+    for non_match in finder.split(line) {
+        list.push(non_match.to_string());
+    }
+    list
+}
+
+fn setup_anchor(link_url: &str, link_name: &str) -> HtmlElement<A> {
+    let anchor = a();
+    anchor.set_href(link_url);
+    anchor.set_inner_text(link_name);
+    anchor
+}
+
 const TAG_NAME_H1: &str = "h1";
 const TAG_NAME_H2: &str = "h2";
 const TAG_NAME_P: &str = "p";
 const TAG_NAME_OL: &str = "ol";
 const TAG_NAME_UL: &str = "ul";
+const TAG_NAME_A: &str = "a";
 const TAG_NAME_NONE: &str = "";
