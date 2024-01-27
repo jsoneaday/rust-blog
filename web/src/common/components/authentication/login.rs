@@ -1,25 +1,25 @@
 use leptos::*;
 use leptos::logging::log;
 use crate::common::api::api_service::ApiService;
-use crate::common::api::models::LoginCredential;
+use crate::common::api::models::{LoginCredential, LoginResponse};
 
 #[component]
 pub fn Login() -> impl IntoView {
     let (email, set_email) = create_signal("dharric@live.com".to_string());
     let (password, set_password) = create_signal("123".to_string());
     let api_service = expect_context::<ReadSignal<ApiService>>();
-    let (_auth_token, set_auth_token) = expect_context::<(ReadSignal<String>, WriteSignal<String>)>();
+    let (_, set_login_resp) = expect_context::<(ReadSignal<Option<LoginResponse>>, WriteSignal<Option<LoginResponse>>)>();
     let submit_post = create_action(move |credentials: &LoginCredential| {
         let credentials = credentials.clone();
 
         async move {
-            let login_res = api_service.get_untracked().login(&credentials).await;
-            match login_res {
-                Ok(token) => {
-                    set_auth_token(token.clone());
-                    log!("login success, token: {}", token);
+            let login_result = api_service.get_untracked().login(&credentials).await;
+            match login_result {
+                Ok(login_resp) => {
+                    set_login_resp(Some(login_resp.clone()));
+                    log!("login success, response: {:?}", login_resp);
                 },
-                Err(e) => log!("login failed {}", e)
+                Err(e) => log!("login failed: {}", e)
             };
         }
     });

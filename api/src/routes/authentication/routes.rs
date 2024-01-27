@@ -16,7 +16,7 @@ use crate::{
         authentication::auth_service::{get_token, STANDARD_REFRESH_TOKEN_EXPIRATION, Authenticator, STANDARD_ACCESS_TOKEN_EXPIRATION, REFRESH_TOKEN_LABEL, decode_token}
     }
 };
-use super::models::{LoginCredential, RefreshToken};
+use super::models::{LoginCredential, LoginResponse, RefreshToken};
 
 
 pub async fn refresh_access_token<T: Repository, U: Authenticator>(app_data: Data<AppState<T, U>>, json: Json<RefreshToken>, req: HttpRequest) -> HttpResponse {    
@@ -67,9 +67,16 @@ pub async fn login<T: AuthenticateDbFn + QueryAdministratorFn + Repository, U: A
                             if let Some(usr) = opt_user {
                                 user_name = usr.user_name;
                                 let (refresh_cookie, access_token) = get_refresh_and_access_token_response(app_data, user_name.as_str());
-                                http_response = Some(HttpResponse::Ok()
+                                
+                                http_response = Some(
+                                    HttpResponse::Ok()
                                     .cookie(refresh_cookie)
-                                    .body(access_token));
+                                    .content_type(ContentType::json())
+                                    .body(serde_json::to_string(&LoginResponse {
+                                        access_token,
+                                        login_user_id: id
+                                    }).unwrap())
+                                );
                             } else {
                                 error!("Authentication failed. Developer not found");
                                 http_response = Some(HttpResponse::Unauthorized()

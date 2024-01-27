@@ -10,3 +10,9 @@ pub struct LoginCredential {
     pub email: String,
     pub password: String
 }
+
+#[derive(Serialize)]
+pub struct LoginResponse {
+    pub access_token: String,
+    pub login_user_id: i64
+}

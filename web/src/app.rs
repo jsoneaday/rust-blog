@@ -1,6 +1,7 @@
 use leptos::*;
 use leptos_router::*;
 use crate::common::api::api_service::ApiService;
+use crate::common::api::models::LoginResponse;
 use crate::pages::administrator::post::{manage_post::ManagePosts, add_post::AddPost};
 use crate::pages::home::home::Home;
 use crate::pages::administrator::{mail::Mail, admin::Admin};
@@ -10,7 +11,8 @@ use crate::pages::page_not_found::PageNotFound;
 pub fn App() -> impl IntoView {
     let (api_service, _) = create_signal(ApiService::new());
     provide_context(api_service);
-    provide_context(create_signal("".to_string()));
+    let login_resp_signal = create_signal::<Option<LoginResponse>>(None);
+    provide_context(login_resp_signal);
     
     view! {
         <Router>

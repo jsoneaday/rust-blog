@@ -1,4 +1,4 @@
-use super::models::LoginCredential;
+use super::models::{LoginCredential, LoginResponse};
 use super::models::{OutputId, NewPost};
 use reqwest::header::HeaderMap;
 use reqwest::{Client, StatusCode};
@@ -22,17 +22,19 @@ impl ApiService {
         let mut headers = HeaderMap::new();
         headers.insert("Authorization", format!("Bearer {}", token).parse().unwrap());
 
-        self.client.post(format!("{}/{}", API_DEV_URL, "post"))
+        let post_resp = self.client.post(format!("{}/{}", API_DEV_URL, "post"))
             .headers(headers)
             .json(new_post)
             .send()
-            .await
-            .unwrap()
-            .json::<OutputId>()
-            .await
+            .await;
+
+        match post_resp {
+            Ok(output_id) => output_id.json::<OutputId>().await,
+            Err(e) => Err(e)
+        }
     }
 
-    pub async fn login(&self, credentials: &LoginCredential) -> Result<String, Error> {
+    pub async fn login(&self, credentials: &LoginCredential) -> Result<LoginResponse, Error> {
         let login_res = self.client.post(format!("{}/{}", API_DEV_URL, "login"))
             .json(credentials)
             .send()
@@ -42,11 +44,7 @@ impl ApiService {
             Ok(res) => {
                 match res.status() {
                     StatusCode::OK => {
-                        let token_res = res.bytes().await;
-                        match token_res {
-                            Ok(token_bytes) => Ok(String::from_utf8_lossy(&token_bytes).to_string()),
-                            Err(e) => Err(e)
-                        }                        
+                        res.json::<LoginResponse>().await                                                
                     },
                     _ => Err(res.error_for_status().err().unwrap())
                 } 
