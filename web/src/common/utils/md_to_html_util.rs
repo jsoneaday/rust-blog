@@ -29,7 +29,7 @@ pub struct MarkdownToHtmlConverter {
     pub link_url_finder: Regex
 }
 
-const LINK_NAME_REGEX: &str = r"\[(.+)\]";
+const LINK_NAME_REGEX: &str = r#"\[(.+)\]"#;
 const LINK_URL_REGEX: &str = r#"\(([^ ]+?)\)"#;
 
 impl MarkdownToHtmlConverter {
@@ -392,7 +392,9 @@ impl MarkdownToHtmlConverter {
             let anchor = setup_anchor(&link_url_content, &link_name_content);
             Some(div().child(anchor).into())
         } else {
+            log!("line_to_check {:?}", line_to_check);
             let mut link_names_list: Vec<String> = get_list_of_regex_matching_content(&self.link_name_finder, "[", "]", line_to_check);
+            log!("link_names_list {:?}", link_names_list);
             let mut link_url_list: Vec<String> = get_list_of_regex_matching_content(&self.link_url_finder, "(", ")", line_to_check);
             let mut non_match_sections: Vec<String> = get_list_of_non_matching_content(&self.link_finder, line_to_check);
             let mut link_items_elements: Vec<HtmlElement<AnyElement>> = vec![];
@@ -400,14 +402,27 @@ impl MarkdownToHtmlConverter {
             let mut index = 0;
             let mut elements: Vec<HtmlElement<AnyElement>> = vec![];
             for non_match_section in non_match_sections {
+                log!("non_match_section {}", non_match_section);
                 let non_matcher = span().child(format!("{} ", non_match_section));
-                let next_link_name = format!("{} ", link_names_list[index]);
-                let next_link_url = format!("{} ", link_url_list[index]);
-                let anchor = setup_anchor(&next_link_url, &next_link_name);
-                
                 elements.push(non_matcher.into());
-                elements.push(anchor.into());                        
 
+                if let Some(link_name_item) = link_names_list.get(index) {
+                    log!("link_names_list[index] {}", link_name_item);
+                    let next_link_name = format!("{} ", link_name_item);
+
+                    if let Some(link_url_item) = link_url_list.get(index) {
+                        log!("link_url_list[index] {}", link_url_item);
+                        let next_link_url = format!("{} ", link_url_item);
+
+                        let anchor = setup_anchor(&next_link_url, &next_link_name);
+                        elements.push(anchor.into());    
+                    } else {
+                        panic!("Cannot have a link name without a url");
+                    }            
+                } else if let Some(link_url_item) = link_url_list.get(index) {
+                    panic!("Cannot have a link url without a name");
+                }
+                                                                             
                 index += 1;
             }
             Some(div().child(elements).into())
@@ -446,12 +461,12 @@ fn get_list_of_regex_matching_content(finder: &Regex, start_md_remove_str: &str,
 
     for caps in finder.captures_iter(line) {            
         for captured_item in caps.iter() {
-            let match_item = captured_item.unwrap();
-            let link_item = match_item.as_str();
+            let cap = captured_item.unwrap();
+            let match_item = cap.as_str();
 
-            let mut cleaned_content = format!("{}", link_item.replace(start_md_remove_str, ""));
-            cleaned_content = format!("{}", link_item.replace(end_md_remove_str, ""));
-            list.push(cleaned_content); 
+            if !match_item.starts_with(start_md_remove_str) && !match_item.ends_with(end_md_remove_str) {
+                list.push(match_item.to_string()); 
+            }
         }                           
     }
     list
