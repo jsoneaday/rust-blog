@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 use regex::Regex;
-use leptos::{logging::log, HtmlElement, html::{AnyElement, A, div, h1, h2, p, strong, a, span, code, em, ol, ul, li}};
+use leptos::{logging::{log, warn}, HtmlElement, html::{AnyElement, A, div, h1, h2, p, strong, a, span, code, em, ol, ul, li}};
 
 pub struct MarkdownToHtmlConverter {
     pub heading_level_1_finder: Regex,
@@ -21,8 +21,6 @@ pub struct MarkdownToHtmlConverter {
     pub white_space_counter_finder: Regex,
     /// Regex to find a markdown link
     pub link_finder: Regex,
-    /// Regex to find an entire line, start to finish, that is a link
-    pub entire_line_is_link_finder: Regex,
     /// Will match only the name portion of a link markdown
     pub link_name_finder: Regex,
     /// Will match only the url portion of a link markdown
@@ -51,7 +49,6 @@ impl MarkdownToHtmlConverter {
             ending_code_finder: Regex::new(r#"[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+\`|[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+\`{2}"#).unwrap(),
             white_space_counter_finder: Regex::new(r"^\s").unwrap(),
             link_finder: Regex::new(r#"\[(.+)\]\(([^ ]+?)( "(.+)")?\)"#).unwrap(),
-            entire_line_is_link_finder: Regex::new(r#"^\[(.+)\]\(([^ ]+?)( "(.+)")?\)$"#).unwrap(),
             link_name_finder: Regex::new(LINK_NAME_REGEX).unwrap(),
             link_url_finder: Regex::new(LINK_URL_REGEX).unwrap(),
         }
@@ -165,7 +162,17 @@ impl MarkdownToHtmlConverter {
             let new_line = regex.replace(line_to_check, "");
             Some(li().child(new_line).into())
         } else if replacement_html == TAG_NAME_A {                        
-            self.get_html_from_md_link(line_to_check, replacement_html)
+            Some(
+                div()
+                    .child(
+                        convert_matched_sections_to_html(self.get_anchor_line_from_md_link(vec![MatchedSection {
+                            section_type: SectionType::Span,
+                            content: line_to_check.to_string(),
+                            url: None
+                        }]))
+                    )
+                    .into()
+            )
         } else if replacement_html == TAG_NAME_P {
             Some(self.get_html_element_inside_md(line_to_check, TAG_NAME_P))
         } else {
@@ -382,51 +389,77 @@ impl MarkdownToHtmlConverter {
         }        
     }
 
-    fn get_html_from_md_link(&self, line_to_check: &str, replacement_html: &str) -> Option<HtmlElement<AnyElement>> {
-        if self.entire_line_is_link_finder.is_match(line_to_check) {
-            let link_name = self.link_name_finder.captures(line_to_check).unwrap().get(0).unwrap().as_str();
-            let link_url = self.link_url_finder.captures(line_to_check).unwrap().get(0).unwrap().as_str();
-            let link_name_content = get_only_matching_content("[", "]", link_name);
-            let link_url_content = get_only_matching_content("(", ")", link_url);
-
-            let anchor = setup_anchor(&link_url_content, &link_name_content);
-            Some(div().child(anchor).into())
-        } else {
-            log!("line_to_check {:?}", line_to_check);
-            let mut link_names_list: Vec<String> = get_list_of_regex_matching_content(&self.link_name_finder, "[", "]", line_to_check);
-            log!("link_names_list {:?}", link_names_list);
-            let mut link_url_list: Vec<String> = get_list_of_regex_matching_content(&self.link_url_finder, "(", ")", line_to_check);
-            let mut non_match_sections: Vec<String> = get_list_of_non_matching_content(&self.link_finder, line_to_check);
-            let mut link_items_elements: Vec<HtmlElement<AnyElement>> = vec![];
-
-            let mut index = 0;
-            let mut elements: Vec<HtmlElement<AnyElement>> = vec![];
-            for non_match_section in non_match_sections {
-                log!("non_match_section {}", non_match_section);
-                let non_matcher = span().child(format!("{} ", non_match_section));
-                elements.push(non_matcher.into());
-
-                if let Some(link_name_item) = link_names_list.get(index) {
-                    log!("link_names_list[index] {}", link_name_item);
-                    let next_link_name = format!("{} ", link_name_item);
-
-                    if let Some(link_url_item) = link_url_list.get(index) {
-                        log!("link_url_list[index] {}", link_url_item);
-                        let next_link_url = format!("{} ", link_url_item);
-
-                        let anchor = setup_anchor(&next_link_url, &next_link_name);
-                        elements.push(anchor.into());    
-                    } else {
-                        panic!("Cannot have a link name without a url");
-                    }            
-                } else if let Some(link_url_item) = link_url_list.get(index) {
-                    panic!("Cannot have a link url without a name");
-                }
-                                                                             
-                index += 1;
+    /// This list of MatchedSections represents a line of content
+    fn get_anchor_line_from_md_link(&self, matched_sections: Vec<MatchedSection>) -> Vec<MatchedSection> {
+        let mut final_matched_section: Vec<MatchedSection> = vec![];
+        for matched_section in matched_sections {
+            if matched_section.section_type != SectionType::Span {
+                continue; // only span needs matching, others should have already been matched
             }
-            Some(div().child(elements).into())
+            log!("matched_section {:?}", &matched_section.content);
+            let link_names_list: Vec<String> = get_list_of_regex_matching_content(&self.link_name_finder, "[", "]", &matched_section.content);
+            let link_url_list: Vec<String> = get_list_of_regex_matching_content(&self.link_url_finder, "(", ")", &matched_section.content);
+            if link_names_list.len() == 0 || link_url_list.len() == 0 {
+                warn!("link names list and link url list seem not to match!");
+                continue;
+            }
+            
+            let non_match_sections: Vec<String> = get_list_of_non_matching_content(&self.link_finder, &matched_section.content);
+            
+            let mut elements: Vec<MatchedSection> = vec![];
+            if non_match_sections.len() == 0 { // if no non-match sections then entire line is a link
+                elements.push(MatchedSection {
+                    section_type: SectionType::Anchor,
+                    content: link_names_list[0].clone(),
+                    url: Some(link_url_list[0].clone())
+                });  
+            } else {
+                let mut index = 0;
+                let mut line_starts_with_non_match_section = false;
+                if matched_section.content.starts_with(non_match_sections.get(0).unwrap()) {
+                    line_starts_with_non_match_section = true;
+                }
+                for non_match_section in non_match_sections {
+                    if line_starts_with_non_match_section {
+                        elements.push(MatchedSection {
+                            section_type: SectionType::Span,
+                            content: non_match_section.clone(),
+                            url: None
+                        });
+                    }                    
+
+                    if let Some(link_name_item) = link_names_list.get(index) {
+                        let next_link_name = format!("{} ", link_name_item);
+
+                        if let Some(link_url_item) = link_url_list.get(index) {
+                            let next_link_url = format!("{} ", link_url_item);
+
+                            elements.push(MatchedSection {
+                                section_type: SectionType::Anchor,
+                                content: next_link_name,
+                                url: Some(next_link_url)
+                            });    
+                        } else {
+                            panic!("Cannot have a link name without a url");
+                        }            
+                    } else if let Some(_link_url_item) = link_url_list.get(index) {
+                        panic!("Cannot have a link url without a name");
+                    }
+
+                    if !line_starts_with_non_match_section {
+                        elements.push(MatchedSection {
+                            section_type: SectionType::Span,
+                            content: non_match_section,
+                            url: None
+                        });
+                    }  
+                                                                                    
+                    index += 1;
+                }
+            }
+            final_matched_section.append(&mut elements);
         }
+        final_matched_section
     }
 }
 
@@ -450,7 +483,8 @@ fn prefix_nbsp_for_whitespace_count(affected_txt: String) -> String {
 /// * `md_start_str` - Beginning characters of a regex matching string
 /// * `md_end_str` - Ending characters of a regex matching string
 /// * `matching_str` - Matched string to extract content from
-fn get_only_matching_content(md_start_str: &str, md_end_str: &str, matching_str: &str) -> String {
+#[allow(unused)]
+fn get_only_matching_content_wo_md(md_start_str: &str, md_end_str: &str, matching_str: &str) -> String {
     let mut content = matching_str.replace(md_start_str, "");
     content = content.replace(md_end_str, "");
     content
@@ -483,9 +517,20 @@ fn get_list_of_non_matching_content(finder: &Regex, line: &str) -> Vec<String> {
 
 fn setup_anchor(link_url: &str, link_name: &str) -> HtmlElement<A> {
     let anchor = a();
-    anchor.set_href(link_url);
-    anchor.set_inner_text(link_name);
+    anchor.set_href(link_url.trim());
+    anchor.set_inner_text(link_name.trim());
     anchor
+}
+
+fn convert_matched_sections_to_html(matched_sections: Vec<MatchedSection>) -> Vec<HtmlElement<AnyElement>> {
+    let mut html_list: Vec<HtmlElement<AnyElement>> = vec![];
+    for matched_section in matched_sections {
+        match matched_section.section_type {
+            SectionType::Anchor => html_list.push(setup_anchor(if let Some(url) = &matched_section.url { url } else { "" }, &matched_section.content).into()),
+            SectionType::Span => html_list.push(span().child(&matched_section.content).into())
+        }
+    }
+    html_list
 }
 
 const TAG_NAME_H1: &str = "h1";
@@ -495,3 +540,19 @@ const TAG_NAME_OL: &str = "ol";
 const TAG_NAME_UL: &str = "ul";
 const TAG_NAME_A: &str = "a";
 const TAG_NAME_NONE: &str = "";
+
+/// Used as a precursor object, before converting to html, while finding matches
+#[derive(Clone, Debug)]
+struct MatchedSection {
+    pub section_type: SectionType,
+    /// consider it same as inner html
+    pub content: String,
+    pub url: Option<String>
+}
+
+#[derive(Clone, Debug, PartialEq)]
+enum SectionType {
+    Anchor,
+    /// effectively a string content item
+    Span
+}
