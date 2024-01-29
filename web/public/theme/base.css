@@ -136,6 +136,10 @@ main {
   padding-bottom: 1.35em;
 }
 
+h1 {
+  font-size: 2em;
+}
+
 ul {
   list-style: none;
   list-style-type: none;

@@ -19,7 +19,7 @@ pub fn PostPreview(post: PostPreviewParams) -> impl IntoView {
 
     view! {
         <section>
-            <h2>{post.title}</h2>
+            <h1>{post.title}</h1>
             <div>{html_content}</div>
         </section>
     }
