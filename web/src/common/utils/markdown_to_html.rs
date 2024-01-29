@@ -96,21 +96,7 @@ impl MarkdownToHtmlConverter {
                 matched_sections = self.get_html_element_from_md(&self.heading_level_1_finder, &matched_sections, TAG_NAME_H1);  
                 matched_sections = self.get_html_element_from_md(&self.heading_level_2_finder, &matched_sections, TAG_NAME_H2);     
                 matched_sections = self.get_html_element_from_md(&self.italic_bold_finder, &matched_sections, TAG_NAME_ITALIC_BOLD);
-                log!(
-                    "about to enter get_html_element_from_md for bold: {:?}", 
-                    &matched_sections
-                        .iter()
-                        .map(|match_element| format!("{:?} {}", match_element.section_type.clone(), match_element.element.inner_text().clone() ))
-                        .collect::<Vec<String>>()
-                );
                 matched_sections = self.get_html_element_from_md(&self.bold_finder, &matched_sections, TAG_NAME_STRONG);
-                log!(
-                    "about to enter get_html_element_from_md for italic: {:?}", 
-                    &matched_sections
-                        .iter()
-                        .map(|match_element| format!("{:?} {}", match_element.section_type.clone(), match_element.element.inner_text().clone() ))
-                        .collect::<Vec<String>>()
-                );
                 matched_sections = self.get_html_element_from_md(&self.italic_finder, &matched_sections, TAG_NAME_ITALIC);                
                 matched_sections = self.get_html_element_from_md(&self.link_finder, &matched_sections, TAG_NAME_A);
             }
@@ -118,20 +104,20 @@ impl MarkdownToHtmlConverter {
             // matched_sections = self.get_html_element_from_md(&self.paragraph_finder, &matched_sections, TAG_NAME_P);        
             // matched_sections = self.get_html_element_from_md(&self.paragraph_finder, &matched_sections, TAG_NAME_NONE);
 
-            html_lines.append(&mut matched_sections.iter().map(|type_element| type_element.element.clone()).collect::<Vec<HtmlElement<AnyElement>>>());
+            let elements = matched_sections.iter().map(|type_element| type_element.element.clone()).collect::<Vec<HtmlElement<AnyElement>>>();
+            html_lines.push(div().child(elements).into());
         }
         html_lines
     }
 
     fn get_html_element_from_md(&self, regex: &Regex, elements_to_check: &Vec<TypeElement>, replacement_html: &str) -> Vec<TypeElement> {
         let mut updated_elements: Vec<TypeElement> = vec![];        
-        log!("received elements: {:?}", elements_to_check.iter().map(|el| el.element.clone().inner_text()).collect::<Vec<String>>());
+        
         for element_to_check in elements_to_check {            
             let section_type = element_to_check.section_type.clone();
             let element = element_to_check.element.clone();            
             let element_inner_text = element.inner_text().clone();
             let element_inner_text = element_inner_text.as_str();
-            log!("section_type: {:?}, element: {}", section_type.clone(), element_inner_text);
 
             if section_type != SectionType::Anchor &&
                 section_type != SectionType::Italic &&
@@ -176,10 +162,10 @@ impl MarkdownToHtmlConverter {
                         }          
                     }
                 }             
-                else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_A {                        
+                else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_A {   
+                    log!("working anchor: {}", element_inner_text);                     
                     let elements = self.get_anchor_element_from_md_link(element_inner_text);
-                    if let Some(elements) = elements {       
-                        let element = element.inner_html("");             
+                    if let Some(elements) = elements {             
                         for element in elements {
                             updated_elements.push(TypeElement { section_type: element.section_type, element: element.element});
                         }   
