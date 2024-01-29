@@ -56,30 +56,65 @@ impl MarkdownToHtmlConverter {
         let md_lines = cloned_md_string.split('\n').collect::<Vec<&str>>();
         let mut html_lines: Vec<HtmlElement<AnyElement>> = vec![];
 
+        let mut ol_started = false;
+        let mut gathered_ol: Vec<HtmlElement<AnyElement>> = vec![];
+        let mut ul_started = false;
+        let mut gathered_ul: Vec<HtmlElement<AnyElement>> = vec![];
+            
         for md_line in md_lines {                   
             let line = md_line.trim().to_string();   
             log!("current line: {}", line);
-            let mut matched_sections: Vec<HtmlElement<AnyElement>> = vec![div().child(line).into()];    
+            let mut matched_sections: Vec<HtmlElement<AnyElement>> = vec![];   
                         
-            matched_sections = self.get_html_element_from_md(&self.heading_level_1_finder, &matched_sections, TAG_NAME_H1);  
-            matched_sections = self.get_html_element_from_md(&self.heading_level_2_finder, &matched_sections, TAG_NAME_H2);     
-            matched_sections = self.get_html_element_from_md(&self.bold_finder, &matched_sections, TAG_NAME_STRONG);
-            matched_sections = self.get_html_element_from_md(&self.italic_finder, &matched_sections, TAG_NAME_ITALIC);
-            matched_sections = self.get_html_element_from_md(&self.link_finder, &matched_sections, TAG_NAME_A);
-            // matched_sections = self.get_html_element_from_md(&self.ordered_list_finder, &matched_sections, TAG_NAME_OL);        
+            // lists behave differently and must be aggregated
+            if self.ordered_list_finder.is_match(line.as_str()) {
+                log!("found ol li: {}", line);
+                if !ol_started {
+                    ol_started = true;
+                }
+                let new_line = self.ordered_list_finder.replace(line.as_str(), "");
+                gathered_ol.push(li().child(new_line).into());
+            } else if self.unordered_list_finder.is_match(line.as_str()) {
+                log!("found ul li: {}", line);
+                if !ul_started {
+                    ul_started = true;
+                }
+                let new_line = self.unordered_list_finder.replace(line.as_str(), "");
+                gathered_ul.push(li().child(new_line).into());
+            } else {
+                if ol_started {         
+                    log!("found ol end");           
+                    matched_sections.push(ol().child(gathered_ol.clone()).into());
+                    gathered_ol.clear();
+                    ol_started = false;
+                } else if ul_started {         
+                    log!("found ul end");           
+                    matched_sections.push(ul().child(gathered_ul.clone()).into());
+                    gathered_ul.clear();
+                    ul_started = false;
+                }
+
+                matched_sections.push(div().child(line.clone()).into()); 
+                matched_sections = self.get_html_element_from_md(&self.heading_level_1_finder, &matched_sections, TAG_NAME_H1);  
+                matched_sections = self.get_html_element_from_md(&self.heading_level_2_finder, &matched_sections, TAG_NAME_H2);     
+                matched_sections = self.get_html_element_from_md(&self.bold_finder, &matched_sections, TAG_NAME_STRONG);
+                matched_sections = self.get_html_element_from_md(&self.italic_finder, &matched_sections, TAG_NAME_ITALIC);
+                matched_sections = self.get_html_element_from_md(&self.link_finder, &matched_sections, TAG_NAME_A);
+            }
+            
             // matched_sections = self.get_html_element_from_md(&self.unordered_list_finder, &matched_sections, TAG_NAME_UL);        
             
-            //matched_sections = self.get_html_element_from_md(&self.paragraph_finder, &matched_sections, TAG_NAME_P);        
+            // matched_sections = self.get_html_element_from_md(&self.paragraph_finder, &matched_sections, TAG_NAME_P);        
             // matched_sections = self.get_html_element_from_md(&self.paragraph_finder, &matched_sections, TAG_NAME_NONE);
 
-            // todo: add converted html
             html_lines.append(&mut matched_sections);
         }
         html_lines
     }
 
     fn get_html_element_from_md(&self, regex: &Regex, elements_to_check: &Vec<HtmlElement<AnyElement>>, replacement_html: &str) -> Vec<HtmlElement<AnyElement>> {
-        let mut updated_elements: Vec<HtmlElement<AnyElement>> = vec![];
+        let mut updated_elements: Vec<HtmlElement<AnyElement>> = vec![];        
+
         for element_to_check in elements_to_check {            
             let element = element_to_check.clone();
             let element_inner_text = element.inner_text().clone();
@@ -93,7 +128,7 @@ impl MarkdownToHtmlConverter {
                 let new_line = regex.replace(element_inner_text, "");              
                 updated_elements.push(h2().child(new_line).into());
             } 
-            // else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_OL {
+            // else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_OL {                               
             //     log!("get_html_element_from_md: OL");
             //     let new_line = regex.replace(element_inner_text, "");
             //     updated_elements.push(li().child(new_line).into());
