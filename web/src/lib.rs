@@ -18,6 +18,7 @@ pub mod common {
     }
     pub mod utils {
         pub mod md_to_html_util;
+        pub mod markdown_to_html;
     }
     pub mod components {
         pub mod layout;

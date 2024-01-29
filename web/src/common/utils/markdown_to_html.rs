@@ -30,8 +30,8 @@ pub struct MarkdownToHtmlConverter {
 impl MarkdownToHtmlConverter {
     pub fn new() -> Self {
         MarkdownToHtmlConverter {
-            heading_level_1_finder: Regex::new(r"^\#{1}\s+").unwrap(),
-            heading_level_2_finder: Regex::new(r"^\#{2}\s+").unwrap(),
+            heading_level_1_finder: Regex::new(H1_REGEX).unwrap(),
+            heading_level_2_finder: Regex::new(H2_REGEX).unwrap(),
             ordered_list_finder: Regex::new(r"^\d+\.").unwrap(),
             unordered_list_finder: Regex::new(r"^\-\s").unwrap(),
             paragraph_finder: Regex::new(r"^\w+").unwrap(),            
@@ -56,127 +56,72 @@ impl MarkdownToHtmlConverter {
         let md_lines = cloned_md_string.split('\n').collect::<Vec<&str>>();
         let mut html_lines: Vec<HtmlElement<AnyElement>> = vec![];
 
-        let mut ol_started = false;
-        let mut current_found_ol: Vec<HtmlElement<AnyElement>> = vec![];
+        for md_line in md_lines {                   
+            let line = md_line.trim().to_string();   
+            log!("current line: {}", line);
+            let mut matched_sections: Vec<HtmlElement<AnyElement>> = vec![div().child(line).into()];    
+                        
+            matched_sections = self.get_html_element_from_md(&self.heading_level_1_finder, &matched_sections, TAG_NAME_H1);  
+            matched_sections = self.get_html_element_from_md(&self.heading_level_2_finder, &matched_sections, TAG_NAME_H2);     
+            matched_sections = self.get_html_element_from_md(&self.bold_finder, &matched_sections, TAG_NAME_STRONG);        
+            // matched_sections = self.get_html_element_from_md(&self.ordered_list_finder, &matched_sections, TAG_NAME_OL);        
+            // matched_sections = self.get_html_element_from_md(&self.unordered_list_finder, &matched_sections, TAG_NAME_UL);        
+            // matched_sections = self.get_html_element_from_md(&self.link_finder, &matched_sections, TAG_NAME_A);
+            //matched_sections = self.get_html_element_from_md(&self.paragraph_finder, &matched_sections, TAG_NAME_P);        
+            // matched_sections = self.get_html_element_from_md(&self.paragraph_finder, &matched_sections, TAG_NAME_NONE);
 
-        let mut ul_started = false;
-        let mut current_found_ul: Vec<HtmlElement<AnyElement>> = vec![];
-
-        let mut code_started = false;
-        let mut code_ended = false;
-        let mut code_sections: Vec<HtmlElement<AnyElement>> = vec![];
-
-        for md_line in md_lines.clone() {       
-            let line = md_line.trim();       
-            
-            if self.ordered_list_finder.is_match(line) {
-                if !ol_started {
-                    ol_started = true;
-                }
-
-                current_found_ol.push(self.convert_md_to_html_element(line).unwrap());
-            } else if self.unordered_list_finder.is_match(line) {
-                if !ul_started {
-                    ul_started = true;
-                }
-
-                current_found_ul.push(self.convert_md_to_html_element(line).unwrap());
-            } else if self.starting_code_finder.is_match(line) {
-                if !code_started {
-                    code_started = true;
-                    code_ended = false;
-                }          
-                code_sections.push(div().inner_html(prefix_nbsp_for_whitespace_count(md_line.to_owned())).into());
-            } else if self.ending_code_finder.is_match(line) {
-                if !code_ended {
-                    code_started = false;
-                    code_ended = true;
-                }       
-                code_sections.push(div().inner_html(prefix_nbsp_for_whitespace_count(md_line.to_owned())).into());
-            } else {
-                if ol_started {
-                    html_lines.push(ol().child(current_found_ol.clone()).into());
-                    current_found_ol.clear();
-                    ol_started = false;
-                }
-                if ul_started {
-                    html_lines.push(ul().child(current_found_ul.clone()).into());
-                    current_found_ul.clear();
-                    ul_started = false;
-                }
-
-                if code_started && !code_ended {           
-                    code_sections.push(div().inner_html(prefix_nbsp_for_whitespace_count(md_line.to_owned())).into());
-                } else if code_ended {
-                    code_started = false;
-                    code_ended = false;
-                    
-                    html_lines.push(code().child(code_sections.clone()).into());
-                    code_sections = vec![];
-                } else if !code_started {
-                    let html_view = self.convert_md_to_html_element(line);
-                    if let Some(html_view) = html_view {
-                        html_lines.push(html_view);
-                    } else {
-                        let copyable_line = Cow::from(line);
-                        html_lines.push(div().child(copyable_line).into());
-                    }
-                }
-            }
+            // todo: add converted html
+            html_lines.append(&mut matched_sections);
         }
         html_lines
     }
 
-    fn convert_md_to_html_element(&self, md_line: &str) -> Option<HtmlElement<AnyElement>> {
-        if self.heading_level_1_finder.is_match(md_line) {            
-            self.get_html_element_from_md(&self.heading_level_1_finder, md_line, TAG_NAME_H1)
-        } else if self.heading_level_2_finder.is_match(md_line) {
-            self.get_html_element_from_md(&self.heading_level_2_finder, md_line, TAG_NAME_H2)
-        } else if self.ordered_list_finder.is_match(md_line) {
-            self.get_html_element_from_md(&self.ordered_list_finder, md_line, TAG_NAME_OL)
-        } else if self.unordered_list_finder.is_match(md_line) {
-            self.get_html_element_from_md(&self.unordered_list_finder, md_line, TAG_NAME_UL)
-        } else if self.link_finder.is_match(md_line) {            
-            self.get_html_element_from_md(&self.link_finder, md_line, TAG_NAME_A)
-        } else if self.paragraph_finder.is_match(md_line) {
-            self.get_html_element_from_md(&self.paragraph_finder, md_line, TAG_NAME_P)
-        } else {
-            self.get_html_element_from_md(&self.paragraph_finder, md_line, TAG_NAME_NONE)
-        }
-    }
-
-    fn get_html_element_from_md(&self, regex: &Regex, line_to_check: &str, replacement_html: &str) -> Option<HtmlElement<AnyElement>> {
-        if replacement_html == TAG_NAME_H1 {
-            let new_line = regex.replace(line_to_check, "");
-            Some(h1().child(new_line).into())
-        } else if replacement_html == TAG_NAME_H2 {
-            let new_line = regex.replace(line_to_check, "");
-            Some(h2().child(new_line).into())
-        } else if replacement_html == TAG_NAME_OL {
-            log!("get_html_element_from_md: OL");
-            let new_line = regex.replace(line_to_check, "");
-            Some(li().child(new_line).into())
-        } else if replacement_html == TAG_NAME_UL {
-            log!("get_html_element_from_md: UL");
-            let new_line = regex.replace(line_to_check, "");
-            Some(li().child(new_line).into())
-        } else if replacement_html == TAG_NAME_A {                        
-            Some(
-                div()
-                    .child(
-                        convert_matched_sections_to_html(self.get_anchor_line_from_md_link(&vec![MatchedSection {
-                            section_type: SectionType::Span,
-                            content: line_to_check.to_string(),
-                            url: None
-                        }]))
-                    )
-                    .into()
-            )
-        } else if replacement_html == TAG_NAME_P {
-            Some(self.get_html_element_inside_md(line_to_check, TAG_NAME_P))
-        } else {
-            Some(self.get_html_element_inside_md(line_to_check, TAG_NAME_NONE))
-        }
+    fn get_html_element_from_md(&self, regex: &Regex, elements_to_check: &Vec<HtmlElement<AnyElement>>, replacement_html: &str) -> Vec<HtmlElement<AnyElement>> {
+        let mut updated_elements: Vec<HtmlElement<AnyElement>> = vec![];
+        for element_to_check in elements_to_check {            
+            let element = element_to_check.clone();
+            let element_inner_text = element.inner_text().clone();
+            let element_inner_text = element_inner_text.as_str();
+            
+            if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_H1 {
+                let new_line = regex.replace(element_inner_text, "");
+                updated_elements.push(h1().child(new_line).into());
+            } 
+            else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_H2 {
+                let new_line = regex.replace(element_inner_text, "");              
+                updated_elements.push(h2().child(new_line).into());
+            } 
+            // else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_OL {
+            //     log!("get_html_element_from_md: OL");
+            //     let new_line = regex.replace(element_inner_text, "");
+            //     updated_elements.push(li().child(new_line).into());
+            // } 
+            // else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_UL {
+            //     log!("get_html_element_from_md: UL");
+            //     let new_line = regex.replace(element_inner_text, "");
+            //     updated_elements.push(li().child(new_line).into());
+            // } 
+            else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_STRONG {                        
+                let elements = self.get_html_element_from_md_line(regex, element_inner_text, &SectionType::Strong, vec!["**"]);
+                if let Some(elements) = elements {
+                    let element = element.inner_html("");
+                    updated_elements.push(element.child(elements));                    
+                }
+            } 
+            // else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_A {                        
+            //     let elements = self.get_anchor_line_from_md_link(element_inner_text);
+            //     if let Some(elements) = elements {                    
+            //         updated_elements.push(element.child(elements));
+            //     }
+            // } 
+            // else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_P {
+            //     updated_elements.push(element.child(self.get_html_element_inside_md(element_inner_text, TAG_NAME_P)));
+            // } 
+            else {                
+                updated_elements.push(element);
+            }
+        }        
+        updated_elements
     }
 
     fn get_html_element_inside_md(&self, line_to_check: &str, parent_html: &str) -> HtmlElement<AnyElement> {
@@ -388,133 +333,94 @@ impl MarkdownToHtmlConverter {
         }        
     }
 
-    /// This list of MatchedSections represents a line of content
-    fn get_matched_section_line_from_md_link(&self, regex: &Regex, matched_sections: &Vec<MatchedSection>, section_type: &SectionType) -> Vec<MatchedSection> {
-        let mut final_matched_section: Vec<MatchedSection> = vec![];
-        for matched_section in matched_sections {
-            if matched_section.section_type != SectionType::Span {
-                continue; // only span needs matching, others should have already been matched
+    fn get_html_element_from_md_line(&self, regex: &Regex, line: &str, section_type: &SectionType, markdown: Vec<&str>) -> Option<Vec<HtmlElement<AnyElement>>> {
+        let match_list: Vec<String> = get_list_of_regex_matching_content(regex, line, markdown);    
+        log!("match_list: {:?}", match_list);
+        let non_match_sections: Vec<String> = get_list_of_non_matching_content(regex, line);
+        log!("non_match_sections: {:?}", non_match_sections);
+        
+        let mut elements: Vec<HtmlElement<AnyElement>> = vec![];
+        if non_match_sections.len() == 0 { // if no non-match sections then entire line is
+            elements.push(convert_matched_sections_to_html(match_list[0].clone(), None, section_type));  
+        } else {
+            let mut index = 0;
+            let mut line_starts_with_non_match_section = false;
+            if line.starts_with(non_match_sections.get(0).unwrap()) {
+                line_starts_with_non_match_section = true;
             }
-            
-            let match_list: Vec<String> = get_list_of_regex_matching_content(regex, &matched_section.content);                      
-            let non_match_sections: Vec<String> = get_list_of_non_matching_content(regex, &matched_section.content);
-            
-            let mut elements: Vec<MatchedSection> = vec![];
-            if non_match_sections.len() == 0 { // if no non-match sections then entire line is a link
-                elements.push(MatchedSection {
-                    section_type: section_type.clone(),
-                    content: match_list[0].clone(),
-                    url: None
-                });  
-            } else {
-                let mut index = 0;
-                let mut line_starts_with_non_match_section = false;
-                if matched_section.content.starts_with(non_match_sections.get(0).unwrap()) {
-                    line_starts_with_non_match_section = true;
-                }
-                for non_match_section in non_match_sections {
-                    if line_starts_with_non_match_section {
-                        elements.push(MatchedSection {
-                            section_type: SectionType::Span,
-                            content: non_match_section.clone(),
-                            url: None
-                        });
-                    }                    
+            for non_match_section in non_match_sections {
+                if line_starts_with_non_match_section {
+                    elements.push(convert_matched_sections_to_html(non_match_section.clone(), None, &SectionType::String));
+                }                    
 
-                    let next_match = format!("{} ", match_list.get(index).unwrap());
-                    elements.push(MatchedSection {
-                        section_type: section_type.clone(),
-                        content: next_match,
-                        url: None
-                    });  
+                let next_match = format!("{} ", match_list.get(index).unwrap());
+                elements.push(convert_matched_sections_to_html(next_match, None, section_type));  
 
-                    if !line_starts_with_non_match_section {
-                        elements.push(MatchedSection {
-                            section_type: SectionType::Span,
-                            content: non_match_section,
-                            url: None
-                        });
-                    }  
-                                                                                    
-                    index += 1;
-                }
+                if !line_starts_with_non_match_section {
+                    elements.push(convert_matched_sections_to_html(non_match_section, None, section_type));
+                }  
+                                                                                
+                index += 1;
             }
-            final_matched_section.append(&mut elements);
         }
-        final_matched_section
+        if elements.len() == 0 {
+            return None;
+        }
+        Some(elements)
     }
 
     /// This list of MatchedSections represents a line of content
-    fn get_anchor_line_from_md_link(&self, matched_sections: &Vec<MatchedSection>) -> Vec<MatchedSection> {
-        let mut final_matched_section: Vec<MatchedSection> = vec![];
-        for matched_section in matched_sections {
-            if matched_section.section_type != SectionType::Span {
-                continue; // only span needs matching, others should have already been matched
+    fn get_anchor_line_from_md_link(&self, line: &str) -> Option<Vec<HtmlElement<AnyElement>>> {     
+        log!("get_anchor_line_from_md_link line: {}", line);
+        let link_names_list: Vec<String> = get_list_of_regex_matching_content(&self.link_name_finder, line, vec!["[", "]"]);
+        let link_url_list: Vec<String> = get_list_of_regex_matching_content(&self.link_url_finder, line, vec!["(", ")"]);
+        if link_names_list.len() == 0 || link_url_list.len() == 0 {
+            warn!("link names list and link url list seem not to match!");
+            return None;
+        }        
+        let non_match_sections: Vec<String> = get_list_of_non_matching_content(&self.link_finder, line);
+        
+        let mut elements: Vec<HtmlElement<AnyElement>> = vec![];
+        if non_match_sections.len() == 0 { // if no non-match sections then entire line is a link
+            elements.push(setup_anchor(link_url_list[0].clone().as_str(), link_names_list[0].clone().as_str()).into());  
+        } else {
+            let mut index = 0;
+            let mut line_starts_with_non_match_section = false;
+            if line.starts_with(non_match_sections.get(0).unwrap()) {
+                line_starts_with_non_match_section = true;
             }
-            
-            let link_names_list: Vec<String> = get_list_of_regex_matching_content(&self.link_name_finder, &matched_section.content);
-            let link_url_list: Vec<String> = get_list_of_regex_matching_content(&self.link_url_finder, &matched_section.content);
-            if link_names_list.len() == 0 || link_url_list.len() == 0 {
-                warn!("link names list and link url list seem not to match!");
-                continue;
-            }
-            
-            let non_match_sections: Vec<String> = get_list_of_non_matching_content(&self.link_finder, &matched_section.content);
-            
-            let mut elements: Vec<MatchedSection> = vec![];
-            if non_match_sections.len() == 0 { // if no non-match sections then entire line is a link
-                elements.push(MatchedSection {
-                    section_type: SectionType::Anchor,
-                    content: link_names_list[0].clone(),
-                    url: Some(link_url_list[0].clone())
-                });  
-            } else {
-                let mut index = 0;
-                let mut line_starts_with_non_match_section = false;
-                if matched_section.content.starts_with(non_match_sections.get(0).unwrap()) {
-                    line_starts_with_non_match_section = true;
+            for non_match_section in non_match_sections {
+                if line_starts_with_non_match_section {
+                    elements.push(span().child(non_match_section.clone()).into());
+                }                    
+
+                if let Some(link_name_item) = link_names_list.get(index) {
+                    let next_link_name = format!("{} ", link_name_item);
+
+                    if let Some(link_url_item) = link_url_list.get(index) {
+                        let next_link_url = format!("{} ", link_url_item);
+
+                        elements.push(setup_anchor(&next_link_url, &next_link_name).into());    
+                    } else {
+                        warn!("Cannot have a link name without a url");
+                        return None;
+                    }            
+                } else if let Some(_link_url_item) = link_url_list.get(index) {
+                    warn!("Cannot have a link url without a name");
+                    return None;
                 }
-                for non_match_section in non_match_sections {
-                    if line_starts_with_non_match_section {
-                        elements.push(MatchedSection {
-                            section_type: SectionType::Span,
-                            content: non_match_section.clone(),
-                            url: None
-                        });
-                    }                    
 
-                    if let Some(link_name_item) = link_names_list.get(index) {
-                        let next_link_name = format!("{} ", link_name_item);
-
-                        if let Some(link_url_item) = link_url_list.get(index) {
-                            let next_link_url = format!("{} ", link_url_item);
-
-                            elements.push(MatchedSection {
-                                section_type: SectionType::Anchor,
-                                content: next_link_name,
-                                url: Some(next_link_url)
-                            });    
-                        } else {
-                            panic!("Cannot have a link name without a url");
-                        }            
-                    } else if let Some(_link_url_item) = link_url_list.get(index) {
-                        panic!("Cannot have a link url without a name");
-                    }
-
-                    if !line_starts_with_non_match_section {
-                        elements.push(MatchedSection {
-                            section_type: SectionType::Span,
-                            content: non_match_section,
-                            url: None
-                        });
-                    }  
-                                                                                    
-                    index += 1;
-                }
+                if !line_starts_with_non_match_section {
+                    elements.push(span().child(non_match_section).into());
+                }  
+                                                                                
+                index += 1;
             }
-            final_matched_section.append(&mut elements);
         }
-        final_matched_section
+        if elements.len() == 0 {
+            return None;
+        }
+        Some(elements)
     }
 }
 
@@ -546,11 +452,15 @@ fn get_only_matching_content_wo_md(md_start_str: &str, md_end_str: &str, matchin
 }
 
 /// Returns only the content without the markdown
-fn get_list_of_regex_matching_content(finder: &Regex, line: &str) -> Vec<String> {
+fn get_list_of_regex_matching_content(finder: &Regex, line: &str, markdown: Vec<&str>) -> Vec<String> {
     let mut list: Vec<String> = vec![];
 
-    for found in finder.find_iter(line) { 
-        list.push(found.as_str()[1..found.len() - 1].to_string());
+    for found in finder.find_iter(line) {
+        let mut found_content = found.as_str().to_string();
+        for md in &markdown {
+            found_content = found_content.replace(md, "");
+        }
+        list.push(found_content.to_string());
     }
     list
 }
@@ -573,15 +483,17 @@ fn setup_anchor(link_url: &str, link_name: &str) -> HtmlElement<A> {
     anchor
 }
 
-fn convert_matched_sections_to_html(matched_sections: Vec<MatchedSection>) -> Vec<HtmlElement<AnyElement>> {
-    let mut html_list: Vec<HtmlElement<AnyElement>> = vec![];
-    for matched_section in matched_sections {
-        match matched_section.section_type {
-            SectionType::Anchor => html_list.push(setup_anchor(if let Some(url) = &matched_section.url { url } else { "" }, &matched_section.content).into()),
-            SectionType::Span => html_list.push(span().child(&matched_section.content).into())
-        }
+fn convert_matched_sections_to_html(content: String, url: Option<String>, section_type: &SectionType) -> HtmlElement<AnyElement> {
+    if section_type == &SectionType::Anchor && url == None {
+        panic!("An anchor requires the url parameter");
     }
-    html_list
+    
+    match section_type {
+        SectionType::Anchor => setup_anchor(url.unwrap().as_str(), content.as_str()).into(),
+        SectionType::String => span().child(content).into(),
+        SectionType::Paragraph => p().child(content).into(),
+        SectionType::Strong => strong().child(content).into()
+    }
 }
 
 const TAG_NAME_H1: &str = "h1";
@@ -590,8 +502,11 @@ const TAG_NAME_P: &str = "p";
 const TAG_NAME_OL: &str = "ol";
 const TAG_NAME_UL: &str = "ul";
 const TAG_NAME_A: &str = "a";
+const TAG_NAME_STRONG: &str = "strong";
 const TAG_NAME_NONE: &str = "";
 
+const H1_REGEX: &str = r"^\#{1}\s+";
+const H2_REGEX: &str = r"^\#{2}\s+";
 const LINK_NAME_REGEX: &str = r#"\[(.+)\]"#;
 const LINK_URL_REGEX: &str = r#"\(([^ ]+?)\)"#;
 
@@ -600,13 +515,15 @@ const LINK_URL_REGEX: &str = r#"\(([^ ]+?)\)"#;
 struct MatchedSection {
     pub section_type: SectionType,
     /// consider it same as inner html
-    pub content: String,
+    pub content: Option<String>,
+    pub children: Option<Vec<MatchedSection>>,
     pub url: Option<String>
 }
 
 #[derive(Clone, Debug, PartialEq)]
 enum SectionType {
     Anchor,
-    /// effectively a string content item
-    Span
+    String,
+    Paragraph,
+    Strong
 }

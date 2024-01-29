@@ -1,6 +1,6 @@
 use leptos::*;
 use serde::{Deserialize, Serialize};
-use crate::common::utils::md_to_html_util::MarkdownToHtmlConverter;
+use crate::common::utils::markdown_to_html::MarkdownToHtmlConverter;
 
 #[derive(Clone, Deserialize, Serialize)]
 pub struct PostPreviewParams {
