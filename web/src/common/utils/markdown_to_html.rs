@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 use regex::Regex;
-use leptos::{logging::{log, warn}, HtmlElement, html::{AnyElement, A, div, h1, h2, p, strong, a, span, code, em, ol, ul, li}};
+use leptos::{logging::{log, warn}, HtmlElement, html::{AnyElement, A, div, h1, h2, p, strong, a, i, span, code, em, ol, ul, li}};
 
 pub struct MarkdownToHtmlConverter {
     pub heading_level_1_finder: Regex,
@@ -63,7 +63,8 @@ impl MarkdownToHtmlConverter {
                         
             matched_sections = self.get_html_element_from_md(&self.heading_level_1_finder, &matched_sections, TAG_NAME_H1);  
             matched_sections = self.get_html_element_from_md(&self.heading_level_2_finder, &matched_sections, TAG_NAME_H2);     
-            matched_sections = self.get_html_element_from_md(&self.bold_finder, &matched_sections, TAG_NAME_STRONG);        
+            matched_sections = self.get_html_element_from_md(&self.bold_finder, &matched_sections, TAG_NAME_STRONG);
+            matched_sections = self.get_html_element_from_md(&self.italic_finder, &matched_sections, TAG_NAME_ITALIC);
             // matched_sections = self.get_html_element_from_md(&self.ordered_list_finder, &matched_sections, TAG_NAME_OL);        
             // matched_sections = self.get_html_element_from_md(&self.unordered_list_finder, &matched_sections, TAG_NAME_UL);        
             // matched_sections = self.get_html_element_from_md(&self.link_finder, &matched_sections, TAG_NAME_A);
@@ -103,6 +104,13 @@ impl MarkdownToHtmlConverter {
             // } 
             else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_STRONG {                        
                 let elements = self.get_html_element_from_md_line(regex, element_inner_text, &SectionType::Strong, vec!["**"]);
+                if let Some(elements) = elements {
+                    let element = element.inner_html("");
+                    updated_elements.push(element.child(elements));                    
+                }
+            } 
+            else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_ITALIC {                        
+                let elements = self.get_html_element_from_md_line(regex, element_inner_text, &SectionType::Italic, vec!["*"]);
                 if let Some(elements) = elements {
                     let element = element.inner_html("");
                     updated_elements.push(element.child(elements));                    
@@ -343,7 +351,7 @@ impl MarkdownToHtmlConverter {
         if non_match_sections.len() == 0 { // if no non-match sections then entire line is
             elements.push(convert_matched_sections_to_html(match_list[0].clone(), None, section_type));  
         } else {
-            let mut index = 0;
+            let mut match_list_index = 0;
             let mut line_starts_with_non_match_section = false;
             if line.starts_with(non_match_sections.get(0).unwrap()) {
                 line_starts_with_non_match_section = true;
@@ -353,14 +361,19 @@ impl MarkdownToHtmlConverter {
                     elements.push(convert_matched_sections_to_html(non_match_section.clone(), None, &SectionType::String));
                 }                    
 
-                let next_match = format!("{} ", match_list.get(index).unwrap());
+                let next_match = format!("{} ", match_list.get(match_list_index).unwrap());
                 elements.push(convert_matched_sections_to_html(next_match, None, section_type));  
 
                 if !line_starts_with_non_match_section {
-                    elements.push(convert_matched_sections_to_html(non_match_section, None, section_type));
+                    elements.push(convert_matched_sections_to_html(non_match_section, None, &SectionType::String));
                 }  
                                                                                 
-                index += 1;
+                match_list_index += 1;
+            }
+            // set last html element if needed
+            if match_list_index < match_list.len() {
+                let next_match = format!("{} ", match_list.get(match_list_index).unwrap());
+                elements.push(convert_matched_sections_to_html(next_match, None, section_type)); 
             }
         }
         if elements.len() == 0 {
@@ -492,7 +505,8 @@ fn convert_matched_sections_to_html(content: String, url: Option<String>, sectio
         SectionType::Anchor => setup_anchor(url.unwrap().as_str(), content.as_str()).into(),
         SectionType::String => span().child(content).into(),
         SectionType::Paragraph => p().child(content).into(),
-        SectionType::Strong => strong().child(content).into()
+        SectionType::Strong => strong().child(content).into(),
+        SectionType::Italic => i().child(content).into()
     }
 }
 
@@ -503,6 +517,7 @@ const TAG_NAME_OL: &str = "ol";
 const TAG_NAME_UL: &str = "ul";
 const TAG_NAME_A: &str = "a";
 const TAG_NAME_STRONG: &str = "strong";
+const TAG_NAME_ITALIC: &str = "I";
 const TAG_NAME_NONE: &str = "";
 
 const H1_REGEX: &str = r"^\#{1}\s+";
@@ -525,5 +540,6 @@ enum SectionType {
     Anchor,
     String,
     Paragraph,
-    Strong
+    Strong,
+    Italic
 }
