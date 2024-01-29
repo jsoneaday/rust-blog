@@ -12,6 +12,7 @@ pub struct MarkdownToHtmlConverter {
     pub bold_finder: Regex,
     pub starting_bold_finder: Regex,
     pub ending_bold_finder: Regex,
+    pub italic_bold_finder: Regex,
     pub italic_finder: Regex,
     pub starting_italic_finder: Regex,
     pub ending_italic_finder: Regex,
@@ -38,6 +39,7 @@ impl MarkdownToHtmlConverter {
             bold_finder: Regex::new(r"\*{2}[\w\s]+\*{2}").unwrap(),            
             starting_bold_finder: Regex::new(r"\*{2}[\w\s]+").unwrap(),
             ending_bold_finder: Regex::new(r"[\w\s]+\*{2}").unwrap(),
+            italic_bold_finder: Regex::new(r"\*{3}[\w\s]+\*{3}").unwrap(),     
             italic_finder: Regex::new(r"\*{1}[\w\s]+\*{1}").unwrap(),
             starting_italic_finder: Regex::new(r"\*{1}[\w\s]+").unwrap(),
             ending_italic_finder: Regex::new(r"[\w\s]+\*{1}").unwrap(),
@@ -64,329 +66,148 @@ impl MarkdownToHtmlConverter {
         for md_line in md_lines {                   
             let line = md_line.trim().to_string();   
             log!("current line: {}", line);
-            let mut matched_sections: Vec<HtmlElement<AnyElement>> = vec![];   
+            let mut matched_sections: Vec<TypeElement> = vec![];   
                         
             // lists behave differently and must be aggregated
             if self.ordered_list_finder.is_match(line.as_str()) {
-                log!("found ol li: {}", line);
                 if !ol_started {
                     ol_started = true;
                 }
                 let new_line = self.ordered_list_finder.replace(line.as_str(), "");
                 gathered_ol.push(li().child(new_line).into());
             } else if self.unordered_list_finder.is_match(line.as_str()) {
-                log!("found ul li: {}", line);
                 if !ul_started {
                     ul_started = true;
                 }
                 let new_line = self.unordered_list_finder.replace(line.as_str(), "");
                 gathered_ul.push(li().child(new_line).into());
             } else {
-                if ol_started {         
-                    log!("found ol end");           
-                    matched_sections.push(ol().child(gathered_ol.clone()).into());
+                if ol_started {                   
+                    matched_sections.push(TypeElement { section_type: SectionType::Ol, element: ol().child(gathered_ol.clone()).into() });
                     gathered_ol.clear();
                     ol_started = false;
-                } else if ul_started {         
-                    log!("found ul end");           
-                    matched_sections.push(ul().child(gathered_ul.clone()).into());
+                } else if ul_started {               
+                    matched_sections.push(TypeElement { section_type: SectionType::Ul, element: ul().child(gathered_ul.clone()).into() });
                     gathered_ul.clear();
                     ul_started = false;
                 }
 
-                matched_sections.push(div().child(line.clone()).into()); 
+                matched_sections.push(TypeElement { section_type: SectionType::String, element: div().child(line.clone()).into() }); 
                 matched_sections = self.get_html_element_from_md(&self.heading_level_1_finder, &matched_sections, TAG_NAME_H1);  
                 matched_sections = self.get_html_element_from_md(&self.heading_level_2_finder, &matched_sections, TAG_NAME_H2);     
+                matched_sections = self.get_html_element_from_md(&self.italic_bold_finder, &matched_sections, TAG_NAME_ITALIC_BOLD);
+                log!(
+                    "about to enter get_html_element_from_md for bold: {:?}", 
+                    &matched_sections
+                        .iter()
+                        .map(|match_element| format!("{:?} {}", match_element.section_type.clone(), match_element.element.inner_text().clone() ))
+                        .collect::<Vec<String>>()
+                );
                 matched_sections = self.get_html_element_from_md(&self.bold_finder, &matched_sections, TAG_NAME_STRONG);
-                matched_sections = self.get_html_element_from_md(&self.italic_finder, &matched_sections, TAG_NAME_ITALIC);
+                log!(
+                    "about to enter get_html_element_from_md for italic: {:?}", 
+                    &matched_sections
+                        .iter()
+                        .map(|match_element| format!("{:?} {}", match_element.section_type.clone(), match_element.element.inner_text().clone() ))
+                        .collect::<Vec<String>>()
+                );
+                matched_sections = self.get_html_element_from_md(&self.italic_finder, &matched_sections, TAG_NAME_ITALIC);                
                 matched_sections = self.get_html_element_from_md(&self.link_finder, &matched_sections, TAG_NAME_A);
             }
-            
-            // matched_sections = self.get_html_element_from_md(&self.unordered_list_finder, &matched_sections, TAG_NAME_UL);        
-            
+                        
             // matched_sections = self.get_html_element_from_md(&self.paragraph_finder, &matched_sections, TAG_NAME_P);        
             // matched_sections = self.get_html_element_from_md(&self.paragraph_finder, &matched_sections, TAG_NAME_NONE);
 
-            html_lines.append(&mut matched_sections);
+            html_lines.append(&mut matched_sections.iter().map(|type_element| type_element.element.clone()).collect::<Vec<HtmlElement<AnyElement>>>());
         }
         html_lines
     }
 
-    fn get_html_element_from_md(&self, regex: &Regex, elements_to_check: &Vec<HtmlElement<AnyElement>>, replacement_html: &str) -> Vec<HtmlElement<AnyElement>> {
-        let mut updated_elements: Vec<HtmlElement<AnyElement>> = vec![];        
-
+    fn get_html_element_from_md(&self, regex: &Regex, elements_to_check: &Vec<TypeElement>, replacement_html: &str) -> Vec<TypeElement> {
+        let mut updated_elements: Vec<TypeElement> = vec![];        
+        log!("received elements: {:?}", elements_to_check.iter().map(|el| el.element.clone().inner_text()).collect::<Vec<String>>());
         for element_to_check in elements_to_check {            
-            let element = element_to_check.clone();
+            let section_type = element_to_check.section_type.clone();
+            let element = element_to_check.element.clone();            
             let element_inner_text = element.inner_text().clone();
             let element_inner_text = element_inner_text.as_str();
-            
-            if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_H1 {
-                let new_line = regex.replace(element_inner_text, "");
-                updated_elements.push(h1().child(new_line).into());
-            } 
-            else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_H2 {
-                let new_line = regex.replace(element_inner_text, "");              
-                updated_elements.push(h2().child(new_line).into());
-            } 
-            // else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_OL {                               
-            //     log!("get_html_element_from_md: OL");
-            //     let new_line = regex.replace(element_inner_text, "");
-            //     updated_elements.push(li().child(new_line).into());
-            // } 
-            // else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_UL {
-            //     log!("get_html_element_from_md: UL");
-            //     let new_line = regex.replace(element_inner_text, "");
-            //     updated_elements.push(li().child(new_line).into());
-            // } 
-            else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_STRONG {                        
-                let elements = self.get_html_element_from_md_line(regex, element_inner_text, &SectionType::Strong, vec!["**"]);
-                if let Some(elements) = elements {
-                    let element = element.inner_html("");
-                    updated_elements.push(element.child(elements));                    
+            log!("section_type: {:?}, element: {}", section_type.clone(), element_inner_text);
+
+            if section_type != SectionType::Anchor &&
+                section_type != SectionType::Italic &&
+                section_type != SectionType::Strong &&
+                section_type != SectionType::ItalicBold {            
+                if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_H1 {
+                    let new_line = regex.replace(element_inner_text, "");
+                    updated_elements.push(TypeElement { section_type: SectionType::H1, element: h1().child(new_line).into() });
+                } 
+                else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_H2 {
+                    let new_line = regex.replace(element_inner_text, "");              
+                    updated_elements.push(TypeElement { section_type: SectionType::H2, element: h2().child(new_line).into() });
+                } 
+                else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_ITALIC_BOLD {
+                    log!("working italic bold: {}", element_inner_text);
+                    let elements = self.get_html_element_from_md_line(regex, element_inner_text, &SectionType::ItalicBold, vec!["***"]);
+                    if let Some(elements) = elements {
+                        let element = element.inner_html("");
+                        log!("elements to set for ItalicBold: {:?}", elements.iter().map(|el| el.element.inner_text()).collect::<Vec<String>>());
+                        for element in elements {
+                            updated_elements.push(TypeElement { section_type: element.section_type, element: element.element});
+                        }                        
+                    }
+                } 
+                else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_STRONG {                        
+                    log!("working bold: {}", element_inner_text);
+                    let elements = self.get_html_element_from_md_line(regex, element_inner_text, &SectionType::Strong, vec!["**"]);
+                    if let Some(elements) = elements {
+                        let element = element.inner_html("");
+                        for element in elements {
+                            updated_elements.push(TypeElement { section_type: element.section_type, element: element.element});
+                        }                     
+                    }
+                } 
+                else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_ITALIC {                        
+                    log!("working italic: {}", element_inner_text);
+                    let elements = self.get_html_element_from_md_line(regex, element_inner_text, &SectionType::Italic, vec!["*"]);
+                    if let Some(elements) = elements {
+                        let element = element.inner_html("");
+                        for element in elements {
+                            updated_elements.push(TypeElement { section_type: element.section_type, element: element.element});
+                        }          
+                    }
+                }             
+                else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_A {                        
+                    let elements = self.get_anchor_element_from_md_link(element_inner_text);
+                    if let Some(elements) = elements {       
+                        let element = element.inner_html("");             
+                        for element in elements {
+                            updated_elements.push(TypeElement { section_type: element.section_type, element: element.element});
+                        }   
+                    }
+                } 
+                // else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_P {
+                //     updated_elements.push(element.child(self.get_html_element_inside_md(element_inner_text, TAG_NAME_P)));
+                // } 
+                else {                
+                    updated_elements.push(TypeElement { section_type, element });
                 }
-            } 
-            else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_ITALIC {                        
-                let elements = self.get_html_element_from_md_line(regex, element_inner_text, &SectionType::Italic, vec!["*"]);
-                if let Some(elements) = elements {
-                    let element = element.inner_html("");
-                    updated_elements.push(element.child(elements));                    
-                }
-            } 
-            else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_A {                        
-                let elements = self.get_anchor_element_from_md_link(element_inner_text);
-                if let Some(elements) = elements {       
-                    let element = element.inner_html("");             
-                    updated_elements.push(element.child(elements));
-                }
-            } 
-            // else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_P {
-            //     updated_elements.push(element.child(self.get_html_element_inside_md(element_inner_text, TAG_NAME_P)));
-            // } 
-            else {                
-                updated_elements.push(element);
+            } else {                
+                updated_elements.push(TypeElement { section_type, element });
             }
         }        
         updated_elements
     }
 
-    fn get_html_element_inside_md(&self, line_to_check: &str, parent_html: &str) -> HtmlElement<AnyElement> {
-        let mut html_items: Vec<HtmlElement<AnyElement>> = vec![];
-        let mut bold_items: Vec<HtmlElement<AnyElement>> = vec![];
-        let mut italic_items: Vec<HtmlElement<AnyElement>> = vec![];
-        let mut code_items: Vec<HtmlElement<AnyElement>> = vec![];
-        
-        for caps in self.bold_finder.captures_iter(line_to_check) {            
-            for captured_item in caps.iter() {
-                let match_item = captured_item.unwrap();
-                let bold_item = match_item.as_str();
-
-                let bold_item_str = format!("{}{}", bold_item.replace("**", ""), " ");
-                bold_items.push(strong().child(bold_item_str.to_string()).into()); 
-            }                           
-        }    
-
-        for caps in self.italic_finder.captures_iter(line_to_check) {            
-            for captured_item in caps.iter() {
-                let match_item = captured_item.unwrap();
-                let italic_item = match_item.as_str();
-
-                let italic_item_str = format!("{}{}", italic_item.replace("*", ""), " ");
-                italic_items.push(em().child(italic_item_str.to_string()).into()); 
-            }                           
-        }        
-
-        for caps in self.code_finder.captures_iter(line_to_check) {       
-            for captured_item in caps.iter() {
-                let match_item = captured_item.unwrap();
-                let code_item = match_item.as_str();
-
-                let code_item_str = format!("{}{}", code_item.replace("`", ""), " ");
-                code_items.push(code().child(code_item_str.to_string()).into()); 
-            }                           
-        }       
-        
-        let line_items = line_to_check.split(' ').collect::<Vec<&str>>();
-
-        let mut bold_count = 0;        
-        let mut started_bold = false;
-        let mut ended_bold = false;
-
-        let mut italic_count = 0;        
-        let mut started_italic = false;
-        let mut ended_italic = false;
-      
-        let mut started_code = false;
-        let mut ended_code = false;
-
-        for item in line_items {
-            if self.bold_finder.is_match(item) {
-                if item.starts_with("**") && item.ends_with("**") {
-                    let bold_item_str = format!("{}{}", item.replace("**", ""), " ");
-                    html_items.push(strong().child(bold_item_str.to_string()).into());
-                } else { // handles words like super**duper**fun
-                    let mut bold_items_list: Vec<String> = vec![];
-                    let mut bold_items_elements: Vec<HtmlElement<AnyElement>> = vec![];
-
-                    for caps in self.bold_finder.captures_iter(item) {            
-                        for captured_item in caps.iter() {
-                            let match_item = captured_item.unwrap();
-                            let bold_item = match_item.as_str();
-            
-                            bold_items_list.push(format!("{}", bold_item.replace("**", ""))); 
-                        }                           
-                    }
-
-                    let words_split_by_asterisk = item.split("**").collect::<Vec<&str>>();
-                    for word_or_words in words_split_by_asterisk {
-                        if bold_items_list.contains(&(word_or_words.to_string())) {
-                            bold_items_elements.push(strong().child(format!("{}", word_or_words)).into());
-                        } else {
-                            bold_items_elements.push(span().child(format!("{}", word_or_words)).into());
-                        }
-                    }
-
-                    bold_items_elements.push(span().child(" ").into());
-                    html_items.push(span().child(bold_items_elements).into());
-                }
-
-                bold_count += 1; // todo: can I remove this?
-            } else if self.starting_bold_finder.is_match(item) {
-                if !started_bold {
-                    ended_bold = false;
-                    started_bold = true;
-                }
-            } else if self.ending_bold_finder.is_match(item) {
-                if !ended_bold {
-                    ended_bold = true;
-                    started_bold = false;
-                }
-
-                let bold_element = bold_items[bold_count].clone();                                
-                let ends_with_asterisk = item.ends_with("*");
-                if !ends_with_asterisk {
-                    bold_element.set_inner_text(bold_element.inner_text().trim());
-                }
-                html_items.push(bold_element.clone());          
-                if !ends_with_asterisk {
-                    let str_index = item.len() - 1;
-                    let final_str = format!("{} ", item.to_string().as_bytes()[str_index] as char);
-                    html_items.push(span().child(final_str).into());                    
-                }                     
-
-                bold_count += 1;
-            } else if self.italic_finder.is_match(item) {
-                if item.starts_with("*") && item.ends_with("*") {
-                    let italic_item_str = format!("{}{}", item.replace("*", ""), " ");
-                    html_items.push(em().child(italic_item_str.to_string()).into());
-                } else { // handles words like super*duper*fun
-                    let mut italic_items_list: Vec<String> = vec![];
-                    let mut italic_items_elements: Vec<HtmlElement<AnyElement>> = vec![];
-
-                    for caps in self.italic_finder.captures_iter(item) {            
-                        for captured_item in caps.iter() {
-                            let match_item = captured_item.unwrap();
-                            let italic_item = match_item.as_str();
-            
-                            italic_items_list.push(format!("{}", italic_item.replace("*", ""))); 
-                        }                           
-                    }
-
-                    let words_split_by_asterisk = item.split('*').collect::<Vec<&str>>();
-                    for word_or_words in words_split_by_asterisk {
-                        if italic_items_list.contains(&(word_or_words.to_string())) {
-                            italic_items_elements.push(em().child(format!("{}", word_or_words)).into());
-                        } else {
-                            italic_items_elements.push(span().child(format!("{}", word_or_words)).into());
-                        }
-                    }
-
-                    italic_items_elements.push(span().child(" ").into());
-                    html_items.push(span().child(italic_items_elements).into());
-                }
-
-                italic_count += 1;
-            } else if self.starting_italic_finder.is_match(item) {
-                if !started_italic {
-                    ended_italic = false;
-                    started_italic = true;
-                }
-            } else if self.ending_italic_finder.is_match(item) {   
-                if !ended_italic {
-                    ended_italic = true;
-                    started_italic = false;
-                }
-
-                let italic_element = italic_items[italic_count].clone();
-                let ends_with_asterisk = item.ends_with("*");
-                if !ends_with_asterisk {
-                    italic_element.set_inner_text(italic_element.inner_text().trim());
-                }
-                html_items.push(italic_element.clone());         
-                if !ends_with_asterisk {
-                    let last_index = item.len() - 1;
-                    let final_char = format!("{} ", item.to_string().as_bytes()[last_index] as char);
-                    html_items.push(span().child(final_char).into());                    
-                }                     
-
-                italic_count += 1;
-            } else if self.code_finder.is_match(item) {          
-                
-            } else if self.starting_code_finder.is_match(item) {
-                if !started_code {
-                    ended_code = false;
-                    started_code = true;
-                }
-            } else if self.ending_code_finder.is_match(item) {
-                if !ended_code {
-                    ended_code = true;
-                    started_code = false;
-                }
-            } else {
-                if ended_bold {
-                    let txt_item = Cow::from(format!("{}{}", item, " "));
-                    html_items.push(span().child(txt_item).into());
-
-                    started_bold = false;
-                    ended_bold = false;
-                } else if ended_italic {
-                    let txt_item = Cow::from(format!("{}{}", item, " "));
-                    html_items.push(span().child(txt_item).into());
-
-                    started_italic = false;
-                    ended_italic = false;
-                } else if ended_code {
-                    started_code = false;
-                    ended_code = false;
-                } else if !started_bold && !started_italic && !started_code {
-                    let txt_item = Cow::from(format!("{}{}", item, " "));
-                    html_items.push(span().child(txt_item).into());
-
-                    started_bold = false;
-                    ended_bold = false;
-                    started_italic = false;
-                    ended_italic = false;
-                    started_code = false;
-                    ended_code = false;
-                }
-            }
-        }
-
-        if parent_html == TAG_NAME_P {
-            p().child(html_items).into()
-        } else {
-            div().child(html_items).into()
-        }        
-    }
-
-    fn get_html_element_from_md_line(&self, regex: &Regex, line: &str, section_type: &SectionType, markdown: Vec<&str>) -> Option<Vec<HtmlElement<AnyElement>>> {
+    /// Returns an inline set of elements
+    fn get_html_element_from_md_line(&self, regex: &Regex, line: &str, section_type: &SectionType, markdown: Vec<&str>) -> Option<Vec<TypeElement>> {
         let match_list: Vec<String> = get_list_of_regex_matching_content(regex, line, markdown);    
         log!("match_list: {:?}", match_list);
         let non_match_sections: Vec<String> = get_list_of_non_matching_content(regex, line);
         log!("non_match_sections: {:?}", non_match_sections);
         
-        let mut elements: Vec<HtmlElement<AnyElement>> = vec![];
+        let mut elements: Vec<TypeElement> = vec![];
         if non_match_sections.len() == 0 { // if no non-match sections then entire line is
-            elements.push(convert_matched_sections_to_html(match_list[0].clone(), None, section_type));  
+            elements.push(TypeElement { section_type: section_type.clone(), element: convert_matched_sections_to_html(match_list[0].clone(), None, section_type) });  
         } else {
             let mut match_list_index = 0;
             let mut line_starts_with_non_match_section = false;
@@ -395,32 +216,37 @@ impl MarkdownToHtmlConverter {
             }
             for non_match_section in non_match_sections {
                 if line_starts_with_non_match_section {
-                    elements.push(convert_matched_sections_to_html(non_match_section.clone(), None, &SectionType::String));
+                    log!("non_match_section: {:?}, {}", &SectionType::String, non_match_section.clone());
+                    elements.push(TypeElement { section_type: SectionType::String, element: convert_matched_sections_to_html(non_match_section.clone(), None, &SectionType::String) });
                 }                    
 
-                let next_match = format!("{}", match_list.get(match_list_index).unwrap());
-                elements.push(convert_matched_sections_to_html(next_match, None, section_type));  
+                if let Some(next_match) = match_list.get(match_list_index) {
+                    log!("next_match: {:?}, {}", section_type, next_match);
+                    elements.push(TypeElement { section_type: section_type.clone(), element: convert_matched_sections_to_html(next_match.to_string(), None, section_type) });  
+                }
 
                 if !line_starts_with_non_match_section {
-                    elements.push(convert_matched_sections_to_html(non_match_section, None, &SectionType::String));
+                    log!("non_match_section: {:?}, {}", &SectionType::String, non_match_section.clone());
+                    elements.push(TypeElement { section_type: SectionType::String, element: convert_matched_sections_to_html(non_match_section, None, &SectionType::String) });
                 }  
-                                                                                
+                
                 match_list_index += 1;
             }
             // set last html element if there is one
             if match_list_index < match_list.len() {
                 let next_match = format!("{} ", match_list.get(match_list_index).unwrap());
-                elements.push(convert_matched_sections_to_html(next_match, None, section_type)); 
+                elements.push(TypeElement { section_type: section_type.clone(), element: convert_matched_sections_to_html(next_match, None, section_type) }); 
             }
         }
         if elements.len() == 0 {
             return None;
         }
+        log!("returning elements: {:?}", elements.iter().map(|el| el.element.inner_text()).collect::<Vec<String>>());
         Some(elements)
     }
 
     /// Will get embedded anchor and other content as well
-    fn get_anchor_element_from_md_link(&self, line: &str) -> Option<Vec<HtmlElement<AnyElement>>> {     
+    fn get_anchor_element_from_md_link(&self, line: &str) -> Option<Vec<TypeElement>> {     
         log!("get_anchor_line_from_md_link line: {}", line);
         let link_names_list: Vec<String> = get_list_of_regex_matching_content(&self.link_name_finder, line, vec!["[", "]"]);
         let link_url_list: Vec<String> = get_list_of_regex_matching_content(&self.link_url_finder, line, vec!["(", ")"]);
@@ -430,9 +256,9 @@ impl MarkdownToHtmlConverter {
         }        
         let non_match_sections: Vec<String> = get_list_of_non_matching_content(&self.link_finder, line);
         
-        let mut elements: Vec<HtmlElement<AnyElement>> = vec![];
+        let mut elements: Vec<TypeElement> = vec![];
         if non_match_sections.len() == 0 { // if no non-match sections then entire line is a link
-            elements.push(setup_anchor(link_url_list[0].clone().as_str(), link_names_list[0].clone().as_str()).into());  
+            elements.push(TypeElement { section_type: SectionType::Anchor, element: setup_anchor(link_url_list[0].clone().as_str(), link_names_list[0].clone().as_str()).into() });  
         } else {
             let mut index = 0;
             let mut line_starts_with_non_match_section = false;
@@ -441,16 +267,16 @@ impl MarkdownToHtmlConverter {
             }
             for non_match_section in non_match_sections {
                 if line_starts_with_non_match_section {
-                    elements.push(span().child(non_match_section.clone()).into());
+                    elements.push(TypeElement { section_type: SectionType::String, element: span().child(non_match_section.clone()).into() });
                 }                    
 
                 let anchor = set_anchor_element(&link_names_list, &link_url_list, index);
                 if let Some(anchor) = anchor {
-                    elements.push(anchor.into());
+                    elements.push(TypeElement { section_type: SectionType::Anchor, element: anchor.into() });
                 }
 
                 if !line_starts_with_non_match_section {
-                    elements.push(span().child(non_match_section).into());
+                    elements.push(TypeElement { section_type: SectionType::String, element: span().child(non_match_section).into() });
                 }  
                                                                                 
                 index += 1;
@@ -459,7 +285,7 @@ impl MarkdownToHtmlConverter {
             if index < link_names_list.len() {
                 let anchor = set_anchor_element(&link_names_list, &link_url_list, index);
                 if let Some(anchor) = anchor {
-                    elements.push(anchor.into());
+                    elements.push(TypeElement { section_type: SectionType::Anchor, element: anchor.into() });
                 }
             }
         }
@@ -559,7 +385,14 @@ fn convert_matched_sections_to_html(content: String, url: Option<String>, sectio
         SectionType::String => span().child(content).into(),
         SectionType::Paragraph => p().child(content).into(),
         SectionType::Strong => strong().child(content).into(),
-        SectionType::Italic => i().child(content).into()
+        SectionType::Italic => i().child(content).into(),
+        SectionType::ItalicBold => {
+            i().child(strong().child(content)).into()
+        },
+        SectionType::Ol => ol().child(content).into(),
+        SectionType::Ul => ul().child(content).into(),
+        SectionType::H1 => h1().child(content).into(),
+        SectionType::H2 => h2().child(content).into()
     }
 }
 
@@ -570,7 +403,8 @@ const TAG_NAME_OL: &str = "ol";
 const TAG_NAME_UL: &str = "ul";
 const TAG_NAME_A: &str = "a";
 const TAG_NAME_STRONG: &str = "strong";
-const TAG_NAME_ITALIC: &str = "I";
+const TAG_NAME_ITALIC: &str = "i";
+const TAG_NAME_ITALIC_BOLD: &str = "istrong";
 const TAG_NAME_NONE: &str = "";
 
 const H1_REGEX: &str = r"^\#{1}\s+";
@@ -579,13 +413,10 @@ const LINK_NAME_REGEX: &str = r#"\[(.+)\]"#;
 const LINK_URL_REGEX: &str = r#"\(([^ ]+?)\)"#;
 
 /// Used as a precursor object, before converting to html, while finding matches
-#[derive(Clone, Debug)]
-struct MatchedSection {
-    pub section_type: SectionType,
-    /// consider it same as inner html
-    pub content: Option<String>,
-    pub children: Option<Vec<MatchedSection>>,
-    pub url: Option<String>
+#[derive(Clone)]
+struct TypeElement {
+    pub section_type: SectionType,    
+    pub element: HtmlElement<AnyElement>
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -594,5 +425,10 @@ enum SectionType {
     String,
     Paragraph,
     Strong,
-    Italic
+    Italic,
+    ItalicBold,
+    Ol,
+    Ul,
+    H1,
+    H2
 }
