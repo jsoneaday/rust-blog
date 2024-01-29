@@ -65,9 +65,10 @@ impl MarkdownToHtmlConverter {
             matched_sections = self.get_html_element_from_md(&self.heading_level_2_finder, &matched_sections, TAG_NAME_H2);     
             matched_sections = self.get_html_element_from_md(&self.bold_finder, &matched_sections, TAG_NAME_STRONG);
             matched_sections = self.get_html_element_from_md(&self.italic_finder, &matched_sections, TAG_NAME_ITALIC);
+            matched_sections = self.get_html_element_from_md(&self.link_finder, &matched_sections, TAG_NAME_A);
             // matched_sections = self.get_html_element_from_md(&self.ordered_list_finder, &matched_sections, TAG_NAME_OL);        
             // matched_sections = self.get_html_element_from_md(&self.unordered_list_finder, &matched_sections, TAG_NAME_UL);        
-            // matched_sections = self.get_html_element_from_md(&self.link_finder, &matched_sections, TAG_NAME_A);
+            
             //matched_sections = self.get_html_element_from_md(&self.paragraph_finder, &matched_sections, TAG_NAME_P);        
             // matched_sections = self.get_html_element_from_md(&self.paragraph_finder, &matched_sections, TAG_NAME_NONE);
 
@@ -116,12 +117,13 @@ impl MarkdownToHtmlConverter {
                     updated_elements.push(element.child(elements));                    
                 }
             } 
-            // else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_A {                        
-            //     let elements = self.get_anchor_line_from_md_link(element_inner_text);
-            //     if let Some(elements) = elements {                    
-            //         updated_elements.push(element.child(elements));
-            //     }
-            // } 
+            else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_A {                        
+                let elements = self.get_anchor_element_from_md_link(element_inner_text);
+                if let Some(elements) = elements {       
+                    let element = element.inner_html("");             
+                    updated_elements.push(element.child(elements));
+                }
+            } 
             // else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_P {
             //     updated_elements.push(element.child(self.get_html_element_inside_md(element_inner_text, TAG_NAME_P)));
             // } 
@@ -361,7 +363,7 @@ impl MarkdownToHtmlConverter {
                     elements.push(convert_matched_sections_to_html(non_match_section.clone(), None, &SectionType::String));
                 }                    
 
-                let next_match = format!("{} ", match_list.get(match_list_index).unwrap());
+                let next_match = format!("{}", match_list.get(match_list_index).unwrap());
                 elements.push(convert_matched_sections_to_html(next_match, None, section_type));  
 
                 if !line_starts_with_non_match_section {
@@ -370,7 +372,7 @@ impl MarkdownToHtmlConverter {
                                                                                 
                 match_list_index += 1;
             }
-            // set last html element if needed
+            // set last html element if there is one
             if match_list_index < match_list.len() {
                 let next_match = format!("{} ", match_list.get(match_list_index).unwrap());
                 elements.push(convert_matched_sections_to_html(next_match, None, section_type)); 
@@ -382,8 +384,8 @@ impl MarkdownToHtmlConverter {
         Some(elements)
     }
 
-    /// This list of MatchedSections represents a line of content
-    fn get_anchor_line_from_md_link(&self, line: &str) -> Option<Vec<HtmlElement<AnyElement>>> {     
+    /// Will get embedded anchor and other content as well
+    fn get_anchor_element_from_md_link(&self, line: &str) -> Option<Vec<HtmlElement<AnyElement>>> {     
         log!("get_anchor_line_from_md_link line: {}", line);
         let link_names_list: Vec<String> = get_list_of_regex_matching_content(&self.link_name_finder, line, vec!["[", "]"]);
         let link_url_list: Vec<String> = get_list_of_regex_matching_content(&self.link_url_finder, line, vec!["(", ")"]);
@@ -407,20 +409,9 @@ impl MarkdownToHtmlConverter {
                     elements.push(span().child(non_match_section.clone()).into());
                 }                    
 
-                if let Some(link_name_item) = link_names_list.get(index) {
-                    let next_link_name = format!("{} ", link_name_item);
-
-                    if let Some(link_url_item) = link_url_list.get(index) {
-                        let next_link_url = format!("{} ", link_url_item);
-
-                        elements.push(setup_anchor(&next_link_url, &next_link_name).into());    
-                    } else {
-                        warn!("Cannot have a link name without a url");
-                        return None;
-                    }            
-                } else if let Some(_link_url_item) = link_url_list.get(index) {
-                    warn!("Cannot have a link url without a name");
-                    return None;
+                let anchor = set_anchor_element(&link_names_list, &link_url_list, index);
+                if let Some(anchor) = anchor {
+                    elements.push(anchor.into());
                 }
 
                 if !line_starts_with_non_match_section {
@@ -429,12 +420,39 @@ impl MarkdownToHtmlConverter {
                                                                                 
                 index += 1;
             }
+            // set last anchor element if there is one
+            if index < link_names_list.len() {
+                let anchor = set_anchor_element(&link_names_list, &link_url_list, index);
+                if let Some(anchor) = anchor {
+                    elements.push(anchor.into());
+                }
+            }
         }
         if elements.len() == 0 {
             return None;
         }
         Some(elements)
     }
+}
+
+fn set_anchor_element(link_names_list: &Vec<String>, link_url_list: &Vec<String>, index: usize) -> Option<HtmlElement<A>> {
+    let mut anchor: Option<HtmlElement<A>> = None;
+    if let Some(link_name_item) = link_names_list.get(index) {
+        let next_link_name = format!("{}", link_name_item);
+
+        if let Some(link_url_item) = link_url_list.get(index) {
+            let next_link_url = format!("{}", link_url_item);
+
+            anchor = setup_anchor(&next_link_url, &next_link_name).into();    
+        } else {
+            warn!("Cannot have a link name without a url");
+            return None;
+        }            
+    } else if let Some(_link_url_item) = link_url_list.get(index) {
+        warn!("Cannot have a link url without a name");
+        return None;
+    }
+    anchor
 }
 
 fn prefix_nbsp_for_whitespace_count(affected_txt: String) -> String {
