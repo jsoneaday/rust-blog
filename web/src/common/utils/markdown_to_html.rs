@@ -25,7 +25,9 @@ pub struct MarkdownToHtmlConverter {
     /// Will match only the name portion of a link markdown
     pub link_name_finder: Regex,
     /// Will match only the url portion of a link markdown
-    pub link_url_finder: Regex
+    pub link_url_finder: Regex,
+    /// Finds only new line for entire line
+    pub only_new_line_finder: Regex
 }
 
 impl MarkdownToHtmlConverter {
@@ -50,6 +52,7 @@ impl MarkdownToHtmlConverter {
             link_finder: Regex::new(r#"\[(.+)\]\(([^ ]+?)( "(.+)")?\)"#).unwrap(),
             link_name_finder: Regex::new(LINK_NAME_REGEX).unwrap(),
             link_url_finder: Regex::new(LINK_URL_REGEX).unwrap(),
+            only_new_line_finder: Regex::new(r"^\s+$").unwrap()
         }
     }
 
@@ -62,10 +65,11 @@ impl MarkdownToHtmlConverter {
         let mut gathered_ol: Vec<HtmlElement<AnyElement>> = vec![];
         let mut ul_started = false;
         let mut gathered_ul: Vec<HtmlElement<AnyElement>> = vec![];
+
+        let mut prior_line_carriage_return = false;
             
-        for md_line in md_lines {                   
-            let line = md_line.trim().to_string();   
-            log!("current line: {}", line);
+        for md_line in md_lines {                               
+            let line = md_line.trim().to_string();            
             let mut matched_sections: Vec<TypeElement> = vec![];   
                         
             // lists behave differently and must be aggregated
@@ -100,12 +104,17 @@ impl MarkdownToHtmlConverter {
                 matched_sections = self.get_html_element_from_md(&self.italic_finder, &matched_sections, TAG_NAME_ITALIC);                
                 matched_sections = self.get_html_element_from_md(&self.link_finder, &matched_sections, TAG_NAME_A);
             }
-                        
-            // matched_sections = self.get_html_element_from_md(&self.paragraph_finder, &matched_sections, TAG_NAME_P);        
-            // matched_sections = self.get_html_element_from_md(&self.paragraph_finder, &matched_sections, TAG_NAME_NONE);
+                                  
+            if prior_line_carriage_return {
+                html_lines.push(p().child(matched_sections.iter().map(|type_element| type_element.element.clone()).collect::<Vec<HtmlElement<AnyElement>>>()).into());
+                prior_line_carriage_return = false;
+            } else {
+                html_lines.push(div().child(matched_sections.iter().map(|type_element| type_element.element.clone()).collect::<Vec<HtmlElement<AnyElement>>>()).into());
+            }            
 
-            let elements = matched_sections.iter().map(|type_element| type_element.element.clone()).collect::<Vec<HtmlElement<AnyElement>>>();
-            html_lines.push(div().child(elements).into());
+            if line.is_empty() || self.only_new_line_finder.is_match(line.as_str()) {
+                prior_line_carriage_return = true;
+            }
         }
         html_lines
     }
@@ -132,18 +141,15 @@ impl MarkdownToHtmlConverter {
                     updated_elements.push(TypeElement { section_type: SectionType::H2, element: h2().child(new_line).into() });
                 } 
                 else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_ITALIC_BOLD {
-                    log!("working italic bold: {}", element_inner_text);
                     let elements = self.get_html_element_from_md_line(regex, element_inner_text, &SectionType::ItalicBold, vec!["***"]);
                     if let Some(elements) = elements {
                         let element = element.inner_html("");
-                        log!("elements to set for ItalicBold: {:?}", elements.iter().map(|el| el.element.inner_text()).collect::<Vec<String>>());
                         for element in elements {
                             updated_elements.push(TypeElement { section_type: element.section_type, element: element.element});
                         }                        
                     }
                 } 
-                else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_STRONG {                        
-                    log!("working bold: {}", element_inner_text);
+                else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_STRONG {                
                     let elements = self.get_html_element_from_md_line(regex, element_inner_text, &SectionType::Strong, vec!["**"]);
                     if let Some(elements) = elements {
                         let element = element.inner_html("");
@@ -152,8 +158,7 @@ impl MarkdownToHtmlConverter {
                         }                     
                     }
                 } 
-                else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_ITALIC {                        
-                    log!("working italic: {}", element_inner_text);
+                else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_ITALIC {   
                     let elements = self.get_html_element_from_md_line(regex, element_inner_text, &SectionType::Italic, vec!["*"]);
                     if let Some(elements) = elements {
                         let element = element.inner_html("");
@@ -163,7 +168,6 @@ impl MarkdownToHtmlConverter {
                     }
                 }             
                 else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_A {   
-                    log!("working anchor: {}", element_inner_text);                     
                     let elements = self.get_anchor_element_from_md_link(element_inner_text);
                     if let Some(elements) = elements {             
                         for element in elements {
@@ -186,10 +190,8 @@ impl MarkdownToHtmlConverter {
 
     /// Returns an inline set of elements
     fn get_html_element_from_md_line(&self, regex: &Regex, line: &str, section_type: &SectionType, markdown: Vec<&str>) -> Option<Vec<TypeElement>> {
-        let match_list: Vec<String> = get_list_of_regex_matching_content(regex, line, markdown);    
-        log!("match_list: {:?}", match_list);
+        let match_list: Vec<String> = get_list_of_regex_matching_content(regex, line, markdown);   
         let non_match_sections: Vec<String> = get_list_of_non_matching_content(regex, line);
-        log!("non_match_sections: {:?}", non_match_sections);
         
         let mut elements: Vec<TypeElement> = vec![];
         if non_match_sections.len() == 0 { // if no non-match sections then entire line is
@@ -202,17 +204,14 @@ impl MarkdownToHtmlConverter {
             }
             for non_match_section in non_match_sections {
                 if line_starts_with_non_match_section {
-                    log!("non_match_section: {:?}, {}", &SectionType::String, non_match_section.clone());
                     elements.push(TypeElement { section_type: SectionType::String, element: convert_matched_sections_to_html(non_match_section.clone(), None, &SectionType::String) });
                 }                    
 
                 if let Some(next_match) = match_list.get(match_list_index) {
-                    log!("next_match: {:?}, {}", section_type, next_match);
                     elements.push(TypeElement { section_type: section_type.clone(), element: convert_matched_sections_to_html(next_match.to_string(), None, section_type) });  
                 }
 
                 if !line_starts_with_non_match_section {
-                    log!("non_match_section: {:?}, {}", &SectionType::String, non_match_section.clone());
                     elements.push(TypeElement { section_type: SectionType::String, element: convert_matched_sections_to_html(non_match_section, None, &SectionType::String) });
                 }  
                 
@@ -227,13 +226,11 @@ impl MarkdownToHtmlConverter {
         if elements.len() == 0 {
             return None;
         }
-        log!("returning elements: {:?}", elements.iter().map(|el| el.element.inner_text()).collect::<Vec<String>>());
         Some(elements)
     }
 
     /// Will get embedded anchor and other content as well
-    fn get_anchor_element_from_md_link(&self, line: &str) -> Option<Vec<TypeElement>> {     
-        log!("get_anchor_line_from_md_link line: {}", line);
+    fn get_anchor_element_from_md_link(&self, line: &str) -> Option<Vec<TypeElement>> {  
         let link_names_list: Vec<String> = get_list_of_regex_matching_content(&self.link_name_finder, line, vec!["[", "]"]);
         let link_url_list: Vec<String> = get_list_of_regex_matching_content(&self.link_url_finder, line, vec!["(", ")"]);
         if link_names_list.len() == 0 || link_url_list.len() == 0 {

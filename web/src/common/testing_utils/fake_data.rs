@@ -9,6 +9,7 @@ pub async fn get_fake_post_preview_data() -> Vec<PostPreviewParams> {
             *Here* is a super*duper*list of todo ***items***
             [This is the link name](https://helloworld.com)
             You can find more info here! [Go Here](https://gohere.com) click that link
+            
             1. Buy milk
             2. Walk dog
             3. Run
@@ -19,6 +20,7 @@ pub async fn get_fake_post_preview_data() -> Vec<PostPreviewParams> {
             title: "Rust is not hard to Learn".to_string(),
             content: r"## Rust is not hard
             Here's a **list** of **items to first learn**, this is**super**duper **great fun**
+
             - Memory ownership
             - Async
             - Locking
