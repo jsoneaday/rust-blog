@@ -1,5 +1,5 @@
 use regex::Regex;
-use leptos::{logging::{log, warn}, HtmlElement, html::{a, code, div, h1, h2, i, img, li, ol, p, span, strong, ul, AnyElement, Img, A}};
+use leptos::{logging::{log, warn}, HtmlElement, html::{a, code, pre, div, h1, h2, i, img, li, ol, p, span, strong, ul, AnyElement, Img, A}};
 
 pub struct MarkdownToHtmlConverter {
     pub heading_level_1_finder: Regex,
@@ -49,7 +49,7 @@ impl MarkdownToHtmlConverter {
 
     pub fn convert_md_to_html(&self, md_string: String) -> Vec<HtmlElement<AnyElement>> {
         let cloned_md_string = md_string.clone();
-        let md_lines = cloned_md_string.split('\n').collect::<Vec<&str>>();
+        let md_lines = cloned_md_string.split('\n').map(|md_line| md_line.to_string()).collect::<Vec<String>>();
         let mut html_lines: Vec<HtmlElement<AnyElement>> = vec![];
 
         let mut ol_started = false;
@@ -86,16 +86,16 @@ impl MarkdownToHtmlConverter {
                     code_ended = false;
                 }
                 
-                let new_line = line_str.replace(r"`", "");
-                gathered_code.push(div().child(new_line).into());
+                let new_line = md_line.clone().replace(r"`", "");
+                gathered_code.push(pre().child(new_line).into());
             } else if self.ending_code_finder.is_match(line_str) {
                 if !code_ended {
                     code_started = false;
                     code_ended = true;
                 }
                 
-                let new_line = line_str.replace(r"`", "");
-                gathered_code.push(div().child(new_line).into());
+                let new_line = md_line.clone().replace(r"`", "");
+                gathered_code.push(pre().child(new_line).into());
             } else {
                 if ol_started {                   
                     matched_sections.push(TypeElement { section_type: SectionType::Ol, element: ol().child(gathered_ol.clone()).into() });
@@ -108,7 +108,8 @@ impl MarkdownToHtmlConverter {
                 }
 
                 if code_started { // gets middle of code section
-                    gathered_code.push(div().child(line.clone()).into());
+                    log!("code middle line: {}", md_line);
+                    gathered_code.push(pre().child(md_line).into());
                 } else if code_ended {
                     code_started = false;
                     code_ended = false;
@@ -191,7 +192,7 @@ impl MarkdownToHtmlConverter {
                     }
                 }             
                 else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_A {   
-                    let elements = self.get_anchor_element_from_md_link(element_inner_text, false);
+                    let elements = self.get_anchor_or_img_from_md_link(element_inner_text, false);
                     if let Some(elements) = elements {             
                         for element in elements {
                             updated_elements.push(TypeElement { section_type: element.section_type, element: element.element});
@@ -199,7 +200,7 @@ impl MarkdownToHtmlConverter {
                     }
                 } 
                 else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_IMG {   
-                    let elements = self.get_anchor_element_from_md_link(element_inner_text, true);
+                    let elements = self.get_anchor_or_img_from_md_link(element_inner_text, true);
                     if let Some(elements) = elements {             
                         for element in elements {
                             updated_elements.push(TypeElement { section_type: element.section_type, element: element.element});
@@ -258,7 +259,7 @@ impl MarkdownToHtmlConverter {
     }
 
     /// Will get embedded anchor and other content as well
-    fn get_anchor_element_from_md_link(&self, line: &str, md_is_image: bool) -> Option<Vec<TypeElement>> {  
+    fn get_anchor_or_img_from_md_link(&self, line: &str, md_is_image: bool) -> Option<Vec<TypeElement>> {  
         // name or title
         let link_names_list: Vec<String> = if !md_is_image { 
             get_list_of_regex_matching_content(&self.link_name_finder, line, vec!["[", "]"])
@@ -427,6 +428,22 @@ fn get_anchor_or_image_type(is_image: bool) -> SectionType {
         return SectionType::Image;
     }
     SectionType::Anchor
+}
+
+fn prefix_nbsp_for_whitespace_count(affected_txt: String) -> String {
+    let whitespace_count: usize = affected_txt
+        .chars()
+        .take_while(|ch| ch.is_whitespace() && *ch != '\n')
+        .map(|ch| ch.len_utf8())
+        .sum();
+    let mut whitespace_count_half = whitespace_count as f32 / 2.0;
+    whitespace_count_half = whitespace_count_half.round();
+
+    let mut inner_txt = affected_txt.clone();
+    for _ in 0..(whitespace_count_half as i32) {
+        inner_txt = format!("{}{}", "&amp;amp;nbsp;", inner_txt);
+    }
+    inner_txt
 }
 
 const TAG_NAME_H1: &str = "h1";

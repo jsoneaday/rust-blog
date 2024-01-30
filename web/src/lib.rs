@@ -17,7 +17,6 @@ pub mod common {
         pub mod fake_data;
     }
     pub mod utils {
-        pub mod md_to_html_util;
         pub mod markdown_to_html;
     }
     pub mod components {
