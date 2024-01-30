@@ -1,5 +1,5 @@
 use regex::Regex;
-use leptos::{logging::{log, warn}, HtmlElement, html::{a, code, pre, div, h1, h2, i, img, li, ol, p, span, strong, ul, AnyElement, Img, A}};
+use leptos::{logging::warn, HtmlElement, html::{a, code, pre, div, h1, h2, i, img, li, ol, p, span, strong, ul, AnyElement, Img, A}};
 
 pub struct MarkdownToHtmlConverter {
     pub heading_level_1_finder: Regex,
@@ -108,7 +108,6 @@ impl MarkdownToHtmlConverter {
                 }
 
                 if code_started { // gets middle of code section
-                    log!("code middle line: {}", md_line);
                     gathered_code.push(pre().child(md_line).into());
                 } else if code_ended {
                     code_started = false;
@@ -351,17 +350,6 @@ fn get_anchor_or_image_element(link_names_list: &Vec<String>, link_url_list: &Ve
     element
 }
 
-/// This function strips out markdown tags and returns only the affected strings
-/// * `md_start_str` - Beginning characters of a regex matching string
-/// * `md_end_str` - Ending characters of a regex matching string
-/// * `matching_str` - Matched string to extract content from
-#[allow(unused)]
-fn get_only_matching_content_wo_md(md_start_str: &str, md_end_str: &str, matching_str: &str) -> String {
-    let mut content = matching_str.replace(md_start_str, "");
-    content = content.replace(md_end_str, "");
-    content
-}
-
 /// Returns only the content without the markdown
 fn get_list_of_regex_matching_content(finder: &Regex, line: &str, markdown: Vec<&str>) -> Vec<String> {
     let mut list: Vec<String> = vec![];
@@ -412,9 +400,7 @@ fn convert_matched_sections_to_html(content: String, url: Option<String>, sectio
         SectionType::String => span().child(content).into(),
         SectionType::Strong => strong().child(content).into(),
         SectionType::Italic => i().child(content).into(),
-        SectionType::ItalicBold => {
-            i().child(strong().child(content)).into()
-        },
+        SectionType::ItalicBold => i().child(strong().child(content)).into(),
         SectionType::Ol => ol().child(content).into(),
         SectionType::Ul => ul().child(content).into(),
         SectionType::H1 => h1().child(content).into(),
@@ -430,6 +416,7 @@ fn get_anchor_or_image_type(is_image: bool) -> SectionType {
     SectionType::Anchor
 }
 
+#[allow(unused)]
 fn prefix_nbsp_for_whitespace_count(affected_txt: String) -> String {
     let whitespace_count: usize = affected_txt
         .chars()
