@@ -65,26 +65,46 @@ impl MarkdownToHtmlConverter {
         let mut gathered_ol: Vec<HtmlElement<AnyElement>> = vec![];
         let mut ul_started = false;
         let mut gathered_ul: Vec<HtmlElement<AnyElement>> = vec![];
+        let mut code_started = false;
+        let mut code_ended = false;
+        let mut gathered_code: Vec<HtmlElement<AnyElement>> = vec![];
 
         let mut prior_line_carriage_return = false;
             
         for md_line in md_lines {                               
             let line = md_line.trim().to_string();            
+            let line_str = line.as_str();
             let mut matched_sections: Vec<TypeElement> = vec![];   
                         
             // lists behave differently and must be aggregated
-            if self.ordered_list_finder.is_match(line.as_str()) {
+            if self.ordered_list_finder.is_match(line_str) {
                 if !ol_started {
                     ol_started = true;
                 }
-                let new_line = self.ordered_list_finder.replace(line.as_str(), "");
+                let new_line = self.ordered_list_finder.replace(line_str, "");
                 gathered_ol.push(li().child(new_line).into());
-            } else if self.unordered_list_finder.is_match(line.as_str()) {
+            } else if self.unordered_list_finder.is_match(line_str) {
                 if !ul_started {
                     ul_started = true;
                 }
-                let new_line = self.unordered_list_finder.replace(line.as_str(), "");
+                let new_line = self.unordered_list_finder.replace(line_str, "");
                 gathered_ul.push(li().child(new_line).into());
+            } else if self.starting_code_finder.is_match(line_str) {
+                if !code_started {
+                    code_started = true;
+                    code_ended = false;
+                }
+                log!("code started: {}", line_str);
+                let new_line = self.starting_code_finder.replace(line_str, "");
+                gathered_code.push(div().child(new_line).into());
+            } else if self.ending_code_finder.is_match(line_str) {
+                if !code_ended {
+                    code_started = false;
+                    code_ended = true;
+                }
+                log!("code ended: {}", line_str);
+                let new_line = self.ending_code_finder.replace(line_str, "");
+                gathered_code.push(div().child(new_line).into());
             } else {
                 if ol_started {                   
                     matched_sections.push(TypeElement { section_type: SectionType::Ol, element: ol().child(gathered_ol.clone()).into() });
@@ -96,27 +116,47 @@ impl MarkdownToHtmlConverter {
                     ul_started = false;
                 }
 
-                matched_sections.push(TypeElement { section_type: SectionType::String, element: div().child(line.clone()).into() }); 
-                matched_sections = self.get_html_element_from_md(&self.heading_level_1_finder, &matched_sections, TAG_NAME_H1);  
-                matched_sections = self.get_html_element_from_md(&self.heading_level_2_finder, &matched_sections, TAG_NAME_H2);     
-                matched_sections = self.get_html_element_from_md(&self.italic_bold_finder, &matched_sections, TAG_NAME_ITALIC_BOLD);
-                matched_sections = self.get_html_element_from_md(&self.bold_finder, &matched_sections, TAG_NAME_STRONG);
-                matched_sections = self.get_html_element_from_md(&self.italic_finder, &matched_sections, TAG_NAME_ITALIC);                
-                matched_sections = self.get_html_element_from_md(&self.link_finder, &matched_sections, TAG_NAME_A);
+                if code_started { // gets middle of code section
+                    log!("code middle: {}", line_str);
+                    gathered_code.push(div().child(line.clone()).into());
+                } else if code_ended {
+                    code_started = false;
+                    code_ended = false;
+                    log!("code complete: {}", line_str);
+                    // code content parsing
+                    // ßlet mut code_matched_sections = gathered_code.iter().map(|code_element| TypeElement { section_type: SectionType::String, element: code_element.clone() }).collect::<Vec<TypeElement>>();
+                    // self.parse_convert_md_to_html(&mut code_matched_sections);
+
+                    // let parsed_code_elements = code_matched_sections.iter().map(|parsed_element| parsed_element.element.clone()).collect::<Vec<HtmlElement<AnyElement>>>();
+                    matched_sections.push(TypeElement { section_type: SectionType::Code, element: code().child(gathered_code.clone()).into() });                    
+                    gathered_code.clear();
+                }
+
+                matched_sections.push(TypeElement { section_type: SectionType::String, element: div().child(line.clone()).into() });
+                self.parse_convert_md_to_html(&mut matched_sections);
             }
                                   
-            if prior_line_carriage_return {
+            if prior_line_carriage_return || self.starting_code_finder.is_match(line_str){
                 html_lines.push(p().child(matched_sections.iter().map(|type_element| type_element.element.clone()).collect::<Vec<HtmlElement<AnyElement>>>()).into());
                 prior_line_carriage_return = false;
             } else {
                 html_lines.push(div().child(matched_sections.iter().map(|type_element| type_element.element.clone()).collect::<Vec<HtmlElement<AnyElement>>>()).into());
             }            
 
-            if line.is_empty() || self.only_new_line_finder.is_match(line.as_str()) {
+            if line.is_empty() || self.only_new_line_finder.is_match(line_str) {
                 prior_line_carriage_return = true;
             }
         }
         html_lines
+    }
+
+    fn parse_convert_md_to_html(&self, matched_sections: &mut Vec<TypeElement>) {        
+        *matched_sections = self.get_html_element_from_md(&self.heading_level_1_finder, &*matched_sections, TAG_NAME_H1);
+        *matched_sections = self.get_html_element_from_md(&self.heading_level_2_finder, &*matched_sections, TAG_NAME_H2);
+        *matched_sections = self.get_html_element_from_md(&self.italic_bold_finder, &*matched_sections, TAG_NAME_ITALIC_BOLD);
+        *matched_sections = self.get_html_element_from_md(&self.bold_finder, &*matched_sections, TAG_NAME_STRONG);
+        *matched_sections = self.get_html_element_from_md(&self.italic_finder, &*matched_sections, TAG_NAME_ITALIC);
+        *matched_sections = self.get_html_element_from_md(&self.link_finder, &*matched_sections, TAG_NAME_A);
     }
 
     fn get_html_element_from_md(&self, regex: &Regex, elements_to_check: &Vec<TypeElement>, replacement_html: &str) -> Vec<TypeElement> {
@@ -175,9 +215,6 @@ impl MarkdownToHtmlConverter {
                         }   
                     }
                 } 
-                // else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_P {
-                //     updated_elements.push(element.child(self.get_html_element_inside_md(element_inner_text, TAG_NAME_P)));
-                // } 
                 else {                
                     updated_elements.push(TypeElement { section_type, element });
                 }
@@ -375,7 +412,8 @@ fn convert_matched_sections_to_html(content: String, url: Option<String>, sectio
         SectionType::Ol => ol().child(content).into(),
         SectionType::Ul => ul().child(content).into(),
         SectionType::H1 => h1().child(content).into(),
-        SectionType::H2 => h2().child(content).into()
+        SectionType::H2 => h2().child(content).into(),
+        SectionType::Code => code().child(content).into()
     }
 }
 
@@ -413,5 +451,6 @@ enum SectionType {
     Ol,
     Ul,
     H1,
-    H2
+    H2,
+    Code
 }
