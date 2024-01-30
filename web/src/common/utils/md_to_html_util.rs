@@ -389,62 +389,6 @@ impl MarkdownToHtmlConverter {
     }
 
     /// This list of MatchedSections represents a line of content
-    fn get_matched_section_line_from_md_link(&self, regex: &Regex, matched_sections: &Vec<MatchedSection>, section_type: &SectionType) -> Vec<MatchedSection> {
-        let mut final_matched_section: Vec<MatchedSection> = vec![];
-        for matched_section in matched_sections {
-            if matched_section.section_type != SectionType::Span {
-                continue; // only span needs matching, others should have already been matched
-            }
-            
-            let match_list: Vec<String> = get_list_of_regex_matching_content(regex, &matched_section.content);                      
-            let non_match_sections: Vec<String> = get_list_of_non_matching_content(regex, &matched_section.content);
-            
-            let mut elements: Vec<MatchedSection> = vec![];
-            if non_match_sections.len() == 0 { // if no non-match sections then entire line is a link
-                elements.push(MatchedSection {
-                    section_type: section_type.clone(),
-                    content: match_list[0].clone(),
-                    url: None
-                });  
-            } else {
-                let mut index = 0;
-                let mut line_starts_with_non_match_section = false;
-                if matched_section.content.starts_with(non_match_sections.get(0).unwrap()) {
-                    line_starts_with_non_match_section = true;
-                }
-                for non_match_section in non_match_sections {
-                    if line_starts_with_non_match_section {
-                        elements.push(MatchedSection {
-                            section_type: SectionType::Span,
-                            content: non_match_section.clone(),
-                            url: None
-                        });
-                    }                    
-
-                    let next_match = format!("{} ", match_list.get(index).unwrap());
-                    elements.push(MatchedSection {
-                        section_type: section_type.clone(),
-                        content: next_match,
-                        url: None
-                    });  
-
-                    if !line_starts_with_non_match_section {
-                        elements.push(MatchedSection {
-                            section_type: SectionType::Span,
-                            content: non_match_section,
-                            url: None
-                        });
-                    }  
-                                                                                    
-                    index += 1;
-                }
-            }
-            final_matched_section.append(&mut elements);
-        }
-        final_matched_section
-    }
-
-    /// This list of MatchedSections represents a line of content
     fn get_anchor_line_from_md_link(&self, matched_sections: &Vec<MatchedSection>) -> Vec<MatchedSection> {
         let mut final_matched_section: Vec<MatchedSection> = vec![];
         for matched_section in matched_sections {

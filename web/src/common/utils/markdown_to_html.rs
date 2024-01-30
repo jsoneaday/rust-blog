@@ -1,6 +1,5 @@
-use std::borrow::Cow;
 use regex::Regex;
-use leptos::{logging::{log, warn}, HtmlElement, html::{AnyElement, A, div, h1, h2, p, strong, a, i, span, code, em, ol, ul, li}};
+use leptos::{logging::{log, warn}, HtmlElement, html::{AnyElement, A, div, h1, h2, p, strong, a, i, span, code, ol, ul, li}};
 
 pub struct MarkdownToHtmlConverter {
     pub heading_level_1_finder: Regex,
@@ -46,8 +45,8 @@ impl MarkdownToHtmlConverter {
             starting_italic_finder: Regex::new(r"\*{1}[\w\s]+").unwrap(),
             ending_italic_finder: Regex::new(r"[\w\s]+\*{1}").unwrap(),
             code_finder: Regex::new(r#"\`[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+\`|\`{2}[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+\`{2}"#).unwrap(),
-            starting_code_finder: Regex::new(r#"\`[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+|\`{2}[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+"#).unwrap(),
-            ending_code_finder: Regex::new(r#"[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+\`|[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+\`{2}"#).unwrap(),
+            starting_code_finder: Regex::new(STARTING_CODE_REGEX).unwrap(),
+            ending_code_finder: Regex::new(ENDING_CODE_REGEX).unwrap(),
             white_space_counter_finder: Regex::new(r"^\s").unwrap(),
             link_finder: Regex::new(r#"\[(.+)\]\(([^ ]+?)( "(.+)")?\)"#).unwrap(),
             link_name_finder: Regex::new(LINK_NAME_REGEX).unwrap(),
@@ -94,16 +93,18 @@ impl MarkdownToHtmlConverter {
                     code_started = true;
                     code_ended = false;
                 }
+                
+                let new_line = line_str.replace(r"`", "");
                 log!("code started: {}", line_str);
-                let new_line = self.starting_code_finder.replace(line_str, "");
                 gathered_code.push(div().child(new_line).into());
             } else if self.ending_code_finder.is_match(line_str) {
                 if !code_ended {
                     code_started = false;
                     code_ended = true;
                 }
-                log!("code ended: {}", line_str);
-                let new_line = self.ending_code_finder.replace(line_str, "");
+                
+                let new_line = line_str.replace(r"`", "");
+                log!("code ended: {}", new_line.clone());
                 gathered_code.push(div().child(new_line).into());
             } else {
                 if ol_started {                   
@@ -126,14 +127,14 @@ impl MarkdownToHtmlConverter {
                     // code content parsing
                     // ßlet mut code_matched_sections = gathered_code.iter().map(|code_element| TypeElement { section_type: SectionType::String, element: code_element.clone() }).collect::<Vec<TypeElement>>();
                     // self.parse_convert_md_to_html(&mut code_matched_sections);
-
                     // let parsed_code_elements = code_matched_sections.iter().map(|parsed_element| parsed_element.element.clone()).collect::<Vec<HtmlElement<AnyElement>>>();
+                    log!("code lines: {}", gathered_code.iter().map(|code_el| code_el.inner_text()).collect::<String>());
                     matched_sections.push(TypeElement { section_type: SectionType::Code, element: code().child(gathered_code.clone()).into() });                    
                     gathered_code.clear();
-                }
-
-                matched_sections.push(TypeElement { section_type: SectionType::String, element: div().child(line.clone()).into() });
-                self.parse_convert_md_to_html(&mut matched_sections);
+                } else {
+                    matched_sections.push(TypeElement { section_type: SectionType::String, element: div().child(line.clone()).into() });
+                    self.parse_convert_md_to_html(&mut matched_sections);
+                }               
             }
                                   
             if prior_line_carriage_return || self.starting_code_finder.is_match(line_str){
@@ -183,7 +184,6 @@ impl MarkdownToHtmlConverter {
                 else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_ITALIC_BOLD {
                     let elements = self.get_html_element_from_md_line(regex, element_inner_text, &SectionType::ItalicBold, vec!["***"]);
                     if let Some(elements) = elements {
-                        let element = element.inner_html("");
                         for element in elements {
                             updated_elements.push(TypeElement { section_type: element.section_type, element: element.element});
                         }                        
@@ -192,7 +192,6 @@ impl MarkdownToHtmlConverter {
                 else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_STRONG {                
                     let elements = self.get_html_element_from_md_line(regex, element_inner_text, &SectionType::Strong, vec!["**"]);
                     if let Some(elements) = elements {
-                        let element = element.inner_html("");
                         for element in elements {
                             updated_elements.push(TypeElement { section_type: element.section_type, element: element.element});
                         }                     
@@ -201,7 +200,6 @@ impl MarkdownToHtmlConverter {
                 else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_ITALIC {   
                     let elements = self.get_html_element_from_md_line(regex, element_inner_text, &SectionType::Italic, vec!["*"]);
                     if let Some(elements) = elements {
-                        let element = element.inner_html("");
                         for element in elements {
                             updated_elements.push(TypeElement { section_type: element.section_type, element: element.element});
                         }          
@@ -336,22 +334,6 @@ fn set_anchor_element(link_names_list: &Vec<String>, link_url_list: &Vec<String>
     anchor
 }
 
-fn prefix_nbsp_for_whitespace_count(affected_txt: String) -> String {
-    let whitespace_count: usize = affected_txt
-        .chars()
-        .take_while(|ch| ch.is_whitespace() && *ch != '\n')
-        .map(|ch| ch.len_utf8())
-        .sum();
-    let mut whitespace_count_half = whitespace_count as f32 / 2.0;
-    whitespace_count_half = whitespace_count_half.round();
-
-    let mut inner_txt = affected_txt.clone();
-    for _ in 0..(whitespace_count_half as i32) {
-        inner_txt = format!("{}{}", "&nbsp;", inner_txt);
-    }
-    inner_txt
-}
-
 /// This function strips out markdown tags and returns only the affected strings
 /// * `md_start_str` - Beginning characters of a regex matching string
 /// * `md_end_str` - Ending characters of a regex matching string
@@ -403,7 +385,6 @@ fn convert_matched_sections_to_html(content: String, url: Option<String>, sectio
     match section_type {
         SectionType::Anchor => setup_anchor(url.unwrap().as_str(), content.as_str()).into(),
         SectionType::String => span().child(content).into(),
-        SectionType::Paragraph => p().child(content).into(),
         SectionType::Strong => strong().child(content).into(),
         SectionType::Italic => i().child(content).into(),
         SectionType::ItalicBold => {
@@ -419,19 +400,17 @@ fn convert_matched_sections_to_html(content: String, url: Option<String>, sectio
 
 const TAG_NAME_H1: &str = "h1";
 const TAG_NAME_H2: &str = "h2";
-const TAG_NAME_P: &str = "p";
-const TAG_NAME_OL: &str = "ol";
-const TAG_NAME_UL: &str = "ul";
 const TAG_NAME_A: &str = "a";
 const TAG_NAME_STRONG: &str = "strong";
 const TAG_NAME_ITALIC: &str = "i";
 const TAG_NAME_ITALIC_BOLD: &str = "istrong";
-const TAG_NAME_NONE: &str = "";
 
 const H1_REGEX: &str = r"^\#{1}\s+";
 const H2_REGEX: &str = r"^\#{2}\s+";
 const LINK_NAME_REGEX: &str = r#"\[(.+)\]"#;
 const LINK_URL_REGEX: &str = r#"\(([^ ]+?)\)"#;
+const STARTING_CODE_REGEX: &str = r#"\`[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+|\`{2}[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+"#;
+const ENDING_CODE_REGEX: &str = r#"[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+\`|[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+\`{2}"#;
 
 /// Used as a precursor object, before converting to html, while finding matches
 #[derive(Clone)]
@@ -444,7 +423,6 @@ struct TypeElement {
 enum SectionType {
     Anchor,
     String,
-    Paragraph,
     Strong,
     Italic,
     ItalicBold,
