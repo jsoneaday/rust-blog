@@ -5,15 +5,15 @@ pub async fn get_fake_post_preview_data() -> Vec<PostPreviewParams> {
         PostPreviewParams {
             id: 1,
             title: "Rust is hard to learn".to_string(),
-            content: r"## Let's learn Rust
+            content: r#"## Let's learn Rust
             *Here* is a super*duper*list of todo ***items***
             [This is the link name](https://helloworld.com)
             You can find more info here! [Go Here](https://gohere.com) click that link
-            
+
             1. Buy milk
             2. Walk dog
             3. Run
-            ".to_string()
+            "#.to_string()
         },
         PostPreviewParams {
             id: 1,
@@ -31,6 +31,7 @@ pub async fn get_fake_post_preview_data() -> Vec<PostPreviewParams> {
             id: 1,
             title: "Rust coding".to_string(),
             content: r#"## Here's some code ***you*** might enjoy
+            ![What a wonderful sight](http://sights.com)
 
             `fn go() -> String {
                 // do work

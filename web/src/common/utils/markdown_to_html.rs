@@ -1,30 +1,28 @@
 use regex::Regex;
-use leptos::{logging::{log, warn}, HtmlElement, html::{AnyElement, A, div, h1, h2, p, strong, a, i, span, code, ol, ul, li}};
+use leptos::{logging::{log, warn}, HtmlElement, html::{a, code, div, h1, h2, i, img, li, ol, p, span, strong, ul, AnyElement, Img, A}};
 
 pub struct MarkdownToHtmlConverter {
     pub heading_level_1_finder: Regex,
     pub heading_level_2_finder: Regex,
     pub ordered_list_finder: Regex,
     pub unordered_list_finder: Regex,
-    /// make certain ol and ul are searched before paragraph
-    pub paragraph_finder: Regex,    
     pub bold_finder: Regex,
-    pub starting_bold_finder: Regex,
-    pub ending_bold_finder: Regex,
     pub italic_bold_finder: Regex,
     pub italic_finder: Regex,
-    pub starting_italic_finder: Regex,
-    pub ending_italic_finder: Regex,
     pub code_finder: Regex,
     pub starting_code_finder: Regex,
     pub ending_code_finder: Regex,
-    pub white_space_counter_finder: Regex,
     /// Regex to find a markdown link
     pub link_finder: Regex,
     /// Will match only the name portion of a link markdown
     pub link_name_finder: Regex,
     /// Will match only the url portion of a link markdown
     pub link_url_finder: Regex,
+    pub image_link_finder: Regex,
+    /// Title for an image is the quoted text inside ()
+    pub image_link_alt_finder: Regex,
+    /// Will match only the url portion of an image link markdown
+    pub image_link_url_finder: Regex,
     /// Finds only new line for entire line
     pub only_new_line_finder: Regex
 }
@@ -35,22 +33,19 @@ impl MarkdownToHtmlConverter {
             heading_level_1_finder: Regex::new(H1_REGEX).unwrap(),
             heading_level_2_finder: Regex::new(H2_REGEX).unwrap(),
             ordered_list_finder: Regex::new(r"^\d+\.").unwrap(),
-            unordered_list_finder: Regex::new(r"^\-\s").unwrap(),
-            paragraph_finder: Regex::new(r"^\w+").unwrap(),            
-            bold_finder: Regex::new(r"\*{2}[\w\s]+\*{2}").unwrap(),            
-            starting_bold_finder: Regex::new(r"\*{2}[\w\s]+").unwrap(),
-            ending_bold_finder: Regex::new(r"[\w\s]+\*{2}").unwrap(),
+            unordered_list_finder: Regex::new(r"^\-\s").unwrap(),     
+            bold_finder: Regex::new(r"\*{2}[\w\s]+\*{2}").unwrap(),      
             italic_bold_finder: Regex::new(r"\*{3}[\w\s]+\*{3}").unwrap(),     
             italic_finder: Regex::new(r"\*{1}[\w\s]+\*{1}").unwrap(),
-            starting_italic_finder: Regex::new(r"\*{1}[\w\s]+").unwrap(),
-            ending_italic_finder: Regex::new(r"[\w\s]+\*{1}").unwrap(),
             code_finder: Regex::new(r#"\`[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+\`|\`{2}[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+\`{2}"#).unwrap(),
             starting_code_finder: Regex::new(STARTING_CODE_REGEX).unwrap(),
             ending_code_finder: Regex::new(ENDING_CODE_REGEX).unwrap(),
-            white_space_counter_finder: Regex::new(r"^\s").unwrap(),
             link_finder: Regex::new(r#"\[(.+)\]\(([^ ]+?)( "(.+)")?\)"#).unwrap(),
             link_name_finder: Regex::new(LINK_NAME_REGEX).unwrap(),
             link_url_finder: Regex::new(LINK_URL_REGEX).unwrap(),
+            image_link_finder: Regex::new(r#"!\[(.+)\]\(([^ ]+?)( "(.+)")?\)"#).unwrap(),
+            image_link_alt_finder: Regex::new(r#"!\[(.+)\]"#).unwrap(),    
+            image_link_url_finder: Regex::new(LINK_URL_REGEX).unwrap(),
             only_new_line_finder: Regex::new(r"^\s+$").unwrap()
         }
     }
@@ -95,7 +90,6 @@ impl MarkdownToHtmlConverter {
                 }
                 
                 let new_line = line_str.replace(r"`", "");
-                log!("code started: {}", line_str);
                 gathered_code.push(div().child(new_line).into());
             } else if self.ending_code_finder.is_match(line_str) {
                 if !code_ended {
@@ -104,7 +98,6 @@ impl MarkdownToHtmlConverter {
                 }
                 
                 let new_line = line_str.replace(r"`", "");
-                log!("code ended: {}", new_line.clone());
                 gathered_code.push(div().child(new_line).into());
             } else {
                 if ol_started {                   
@@ -118,22 +111,26 @@ impl MarkdownToHtmlConverter {
                 }
 
                 if code_started { // gets middle of code section
-                    log!("code middle: {}", line_str);
                     gathered_code.push(div().child(line.clone()).into());
                 } else if code_ended {
                     code_started = false;
                     code_ended = false;
-                    log!("code complete: {}", line_str);
-                    // code content parsing
-                    // ßlet mut code_matched_sections = gathered_code.iter().map(|code_element| TypeElement { section_type: SectionType::String, element: code_element.clone() }).collect::<Vec<TypeElement>>();
-                    // self.parse_convert_md_to_html(&mut code_matched_sections);
-                    // let parsed_code_elements = code_matched_sections.iter().map(|parsed_element| parsed_element.element.clone()).collect::<Vec<HtmlElement<AnyElement>>>();
-                    log!("code lines: {}", gathered_code.iter().map(|code_el| code_el.inner_text()).collect::<String>());
+                    
                     matched_sections.push(TypeElement { section_type: SectionType::Code, element: code().child(gathered_code.clone()).into() });                    
                     gathered_code.clear();
                 } else {
                     matched_sections.push(TypeElement { section_type: SectionType::String, element: div().child(line.clone()).into() });
-                    self.parse_convert_md_to_html(&mut matched_sections);
+                    matched_sections = self.get_html_element_from_md(&self.heading_level_1_finder, &matched_sections, TAG_NAME_H1);
+                    matched_sections = self.get_html_element_from_md(&self.heading_level_2_finder, &matched_sections, TAG_NAME_H2);
+                    matched_sections = self.get_html_element_from_md(&self.italic_bold_finder, &matched_sections, TAG_NAME_ITALIC_BOLD);
+                    matched_sections = self.get_html_element_from_md(&self.bold_finder, &matched_sections, TAG_NAME_STRONG);
+                    matched_sections = self.get_html_element_from_md(&self.italic_finder, &matched_sections, TAG_NAME_ITALIC);
+
+                    if self.image_link_finder.is_match(line_str) {
+                        matched_sections = self.get_html_element_from_md(&self.link_finder, &matched_sections, TAG_NAME_IMG);
+                    } else {
+                        matched_sections = self.get_html_element_from_md(&self.link_finder, &matched_sections, TAG_NAME_A);
+                    }
                 }               
             }
                                   
@@ -149,15 +146,6 @@ impl MarkdownToHtmlConverter {
             }
         }
         html_lines
-    }
-
-    fn parse_convert_md_to_html(&self, matched_sections: &mut Vec<TypeElement>) {        
-        *matched_sections = self.get_html_element_from_md(&self.heading_level_1_finder, &*matched_sections, TAG_NAME_H1);
-        *matched_sections = self.get_html_element_from_md(&self.heading_level_2_finder, &*matched_sections, TAG_NAME_H2);
-        *matched_sections = self.get_html_element_from_md(&self.italic_bold_finder, &*matched_sections, TAG_NAME_ITALIC_BOLD);
-        *matched_sections = self.get_html_element_from_md(&self.bold_finder, &*matched_sections, TAG_NAME_STRONG);
-        *matched_sections = self.get_html_element_from_md(&self.italic_finder, &*matched_sections, TAG_NAME_ITALIC);
-        *matched_sections = self.get_html_element_from_md(&self.link_finder, &*matched_sections, TAG_NAME_A);
     }
 
     fn get_html_element_from_md(&self, regex: &Regex, elements_to_check: &Vec<TypeElement>, replacement_html: &str) -> Vec<TypeElement> {
@@ -206,7 +194,15 @@ impl MarkdownToHtmlConverter {
                     }
                 }             
                 else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_A {   
-                    let elements = self.get_anchor_element_from_md_link(element_inner_text);
+                    let elements = self.get_anchor_element_from_md_link(element_inner_text, false);
+                    if let Some(elements) = elements {             
+                        for element in elements {
+                            updated_elements.push(TypeElement { section_type: element.section_type, element: element.element});
+                        }   
+                    }
+                } 
+                else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_IMG {   
+                    let elements = self.get_anchor_element_from_md_link(element_inner_text, true);
                     if let Some(elements) = elements {             
                         for element in elements {
                             updated_elements.push(TypeElement { section_type: element.section_type, element: element.element});
@@ -265,18 +261,36 @@ impl MarkdownToHtmlConverter {
     }
 
     /// Will get embedded anchor and other content as well
-    fn get_anchor_element_from_md_link(&self, line: &str) -> Option<Vec<TypeElement>> {  
-        let link_names_list: Vec<String> = get_list_of_regex_matching_content(&self.link_name_finder, line, vec!["[", "]"]);
+    fn get_anchor_element_from_md_link(&self, line: &str, md_is_image: bool) -> Option<Vec<TypeElement>> {  
+        // name or title
+        let link_names_list: Vec<String> = if !md_is_image { 
+            get_list_of_regex_matching_content(&self.link_name_finder, line, vec!["[", "]"])
+        } else {
+            get_list_of_regex_matching_content(&self.image_link_alt_finder, line, vec!["![", "]"])
+        };
+        log!("link_names_list: {:?}, is_image? {}", link_names_list, md_is_image);
         let link_url_list: Vec<String> = get_list_of_regex_matching_content(&self.link_url_finder, line, vec!["(", ")"]);
+        log!("link_url_list: {:?}, is_image? {}", link_url_list, md_is_image);
         if link_names_list.len() == 0 || link_url_list.len() == 0 {
             warn!("link names list and link url list seem not to match!");
             return None;
         }        
-        let non_match_sections: Vec<String> = get_list_of_non_matching_content(&self.link_finder, line);
+        let non_match_sections: Vec<String> = get_list_of_non_matching_content(if !md_is_image {
+            &self.link_finder
+        } else {
+            &self.image_link_finder
+        }, line);
         
         let mut elements: Vec<TypeElement> = vec![];
         if non_match_sections.len() == 0 { // if no non-match sections then entire line is a link
-            elements.push(TypeElement { section_type: SectionType::Anchor, element: setup_anchor(link_url_list[0].clone().as_str(), link_names_list[0].clone().as_str()).into() });  
+            elements.push(TypeElement { 
+                section_type: get_anchor_or_image_type(md_is_image), 
+                element: if !md_is_image {
+                        setup_anchor(link_url_list[0].clone().as_str(), link_names_list[0].clone().as_str()).into()
+                    } else {
+                        setup_image(link_url_list[0].clone().as_str(), link_names_list[0].clone().as_str()).into()
+                    }                     
+            });  
         } else {
             let mut index = 0;
             let mut line_starts_with_non_match_section = false;
@@ -288,9 +302,9 @@ impl MarkdownToHtmlConverter {
                     elements.push(TypeElement { section_type: SectionType::String, element: span().child(non_match_section.clone()).into() });
                 }                    
 
-                let anchor = set_anchor_element(&link_names_list, &link_url_list, index);
-                if let Some(anchor) = anchor {
-                    elements.push(TypeElement { section_type: SectionType::Anchor, element: anchor.into() });
+                let element = get_anchor_or_image_element(&link_names_list, &link_url_list, index, md_is_image);
+                if let Some(element) = element {
+                    elements.push(TypeElement { section_type: get_anchor_or_image_type(md_is_image), element });
                 }
 
                 if !line_starts_with_non_match_section {
@@ -301,9 +315,9 @@ impl MarkdownToHtmlConverter {
             }
             // set last anchor element if there is one
             if index < link_names_list.len() {
-                let anchor = set_anchor_element(&link_names_list, &link_url_list, index);
-                if let Some(anchor) = anchor {
-                    elements.push(TypeElement { section_type: SectionType::Anchor, element: anchor.into() });
+                let element = get_anchor_or_image_element(&link_names_list, &link_url_list, index, md_is_image);
+                if let Some(element) = element {
+                    elements.push(TypeElement { section_type: get_anchor_or_image_type(md_is_image), element });
                 }
             }
         }
@@ -314,15 +328,19 @@ impl MarkdownToHtmlConverter {
     }
 }
 
-fn set_anchor_element(link_names_list: &Vec<String>, link_url_list: &Vec<String>, index: usize) -> Option<HtmlElement<A>> {
-    let mut anchor: Option<HtmlElement<A>> = None;
+fn get_anchor_or_image_element(link_names_list: &Vec<String>, link_url_list: &Vec<String>, index: usize, is_image: bool) -> Option<HtmlElement<AnyElement>> {
+    let mut element: Option<HtmlElement<AnyElement>> = None;
     if let Some(link_name_item) = link_names_list.get(index) {
         let next_link_name = format!("{}", link_name_item);
 
         if let Some(link_url_item) = link_url_list.get(index) {
             let next_link_url = format!("{}", link_url_item);
 
-            anchor = setup_anchor(&next_link_url, &next_link_name).into();    
+            if !is_image {
+                element = Some(setup_anchor(&next_link_url, &next_link_name).into());    
+            } else {
+                element = Some(setup_image(&next_link_url, &next_link_name).into()); 
+            }
         } else {
             warn!("Cannot have a link name without a url");
             return None;
@@ -331,7 +349,7 @@ fn set_anchor_element(link_names_list: &Vec<String>, link_url_list: &Vec<String>
         warn!("Cannot have a link url without a name");
         return None;
     }
-    anchor
+    element
 }
 
 /// This function strips out markdown tags and returns only the affected strings
@@ -377,6 +395,13 @@ fn setup_anchor(link_url: &str, link_name: &str) -> HtmlElement<A> {
     anchor
 }
 
+fn setup_image(link_url: &str, link_alt: &str) -> HtmlElement<Img> {
+    let img = img();
+    img.set_src(link_url.trim());
+    img.set_alt(link_alt);
+    img
+}
+
 fn convert_matched_sections_to_html(content: String, url: Option<String>, section_type: &SectionType) -> HtmlElement<AnyElement> {
     if section_type == &SectionType::Anchor && url == None {
         panic!("An anchor requires the url parameter");
@@ -384,6 +409,7 @@ fn convert_matched_sections_to_html(content: String, url: Option<String>, sectio
     
     match section_type {
         SectionType::Anchor => setup_anchor(url.unwrap().as_str(), content.as_str()).into(),
+        SectionType::Image => setup_image(url.unwrap().as_str(), content.as_str()).into(),
         SectionType::String => span().child(content).into(),
         SectionType::Strong => strong().child(content).into(),
         SectionType::Italic => i().child(content).into(),
@@ -398,9 +424,17 @@ fn convert_matched_sections_to_html(content: String, url: Option<String>, sectio
     }
 }
 
+fn get_anchor_or_image_type(is_image: bool) -> SectionType {
+    if is_image {
+        return SectionType::Image;
+    }
+    SectionType::Anchor
+}
+
 const TAG_NAME_H1: &str = "h1";
 const TAG_NAME_H2: &str = "h2";
 const TAG_NAME_A: &str = "a";
+const TAG_NAME_IMG: &str = "img";
 const TAG_NAME_STRONG: &str = "strong";
 const TAG_NAME_ITALIC: &str = "i";
 const TAG_NAME_ITALIC_BOLD: &str = "istrong";
@@ -422,6 +456,7 @@ struct TypeElement {
 #[derive(Clone, Debug, PartialEq)]
 enum SectionType {
     Anchor,
+    Image,
     String,
     Strong,
     Italic,
