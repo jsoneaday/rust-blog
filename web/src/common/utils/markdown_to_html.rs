@@ -19,11 +19,8 @@ pub struct MarkdownToHtmlConverter {
     /// Will match only the url portion of a link markdown
     pub link_url_finder: Regex,
     pub image_link_finder: Regex,
-    /// Title for an image is the quoted text inside ()
     pub image_link_alt_finder: Regex,
-    /// Will match only the url portion of an image link markdown
     pub image_link_url_finder: Regex,
-    /// Finds only new line for entire line
     pub only_new_line_finder: Regex
 }
 
@@ -268,9 +265,7 @@ impl MarkdownToHtmlConverter {
         } else {
             get_list_of_regex_matching_content(&self.image_link_alt_finder, line, vec!["![", "]"])
         };
-        log!("link_names_list: {:?}, is_image? {}", link_names_list, md_is_image);
         let link_url_list: Vec<String> = get_list_of_regex_matching_content(&self.link_url_finder, line, vec!["(", ")"]);
-        log!("link_url_list: {:?}, is_image? {}", link_url_list, md_is_image);
         if link_names_list.len() == 0 || link_url_list.len() == 0 {
             warn!("link names list and link url list seem not to match!");
             return None;
@@ -288,7 +283,8 @@ impl MarkdownToHtmlConverter {
                 element: if !md_is_image {
                         setup_anchor(link_url_list[0].clone().as_str(), link_names_list[0].clone().as_str()).into()
                     } else {
-                        setup_image(link_url_list[0].clone().as_str(), link_names_list[0].clone().as_str()).into()
+                        let mut url = link_url_list[0].split(' ');
+                        setup_image(url.nth(0).unwrap(), link_names_list[0].clone().as_str()).into()
                     }                     
             });  
         } else {
@@ -328,13 +324,15 @@ impl MarkdownToHtmlConverter {
     }
 }
 
+/// A link may have a title in quotes. This function will remove it
 fn get_anchor_or_image_element(link_names_list: &Vec<String>, link_url_list: &Vec<String>, index: usize, is_image: bool) -> Option<HtmlElement<AnyElement>> {
     let mut element: Option<HtmlElement<AnyElement>> = None;
     if let Some(link_name_item) = link_names_list.get(index) {
         let next_link_name = format!("{}", link_name_item);
 
         if let Some(link_url_item) = link_url_list.get(index) {
-            let next_link_url = format!("{}", link_url_item);
+            let mut url = link_url_item.split(' ');
+            let next_link_url = format!("{}", url.nth(0).unwrap());
 
             if !is_image {
                 element = Some(setup_anchor(&next_link_url, &next_link_name).into());    
@@ -442,7 +440,7 @@ const TAG_NAME_ITALIC_BOLD: &str = "istrong";
 const H1_REGEX: &str = r"^\#{1}\s+";
 const H2_REGEX: &str = r"^\#{2}\s+";
 const LINK_NAME_REGEX: &str = r#"\[(.+)\]"#;
-const LINK_URL_REGEX: &str = r#"\(([^ ]+?)\)"#;
+const LINK_URL_REGEX: &str = r#"\(([^ ]+?)( "(.+)")?\)"#;
 const STARTING_CODE_REGEX: &str = r#"\`[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+|\`{2}[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+"#;
 const ENDING_CODE_REGEX: &str = r#"[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+\`|[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+\`{2}"#;
 
