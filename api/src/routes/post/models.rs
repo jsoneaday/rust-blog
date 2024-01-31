@@ -16,6 +16,7 @@ pub struct NewPost {
 pub struct PostResponder {
     pub id: i64,
     pub updated_at: DateTime<Utc>,
+    pub title: String,
     pub message: String,
     pub admin_id: i64
 }
@@ -61,6 +62,7 @@ pub fn convert(post: &Post) -> PostResponder {
     PostResponder {
         id: post.id,
         updated_at: post.updated_at,
+        title: post.title.to_string(),
         message: post.message.to_string(),
         admin_id: post.admin_id
     }

@@ -1,10 +1,6 @@
 use regex::Regex;
 use leptos::{logging::{log, warn}, HtmlElement, html::{a, code, pre, div, h1, h2, i, img, li, ol, p, span, strong, ul, AnyElement, Img, A}};
 
-mod internal {
-    
-}
-
 pub struct MarkdownToHtmlConverter {
     pub heading_level_1_finder: Regex,
     pub heading_level_2_finder: Regex,
@@ -65,7 +61,7 @@ impl MarkdownToHtmlConverter {
         let mut gathered_code: Vec<HtmlElement<AnyElement>> = vec![];
 
         let mut prior_line_carriage_return = false;
-            
+        let mut md_lines_index = 0;
         for md_line in md_lines {                               
             let line = md_line.trim().to_string();            
             let line_str = line.as_str();
@@ -82,7 +78,9 @@ impl MarkdownToHtmlConverter {
                 if !ul_started {
                     ul_started = true;
                 }
+                
                 let new_line = self.unordered_list_finder.replace(line_str, "");
+                log!("ul li line: {}, {}", new_line, ul_started);
                 gathered_ul.push(li().child(new_line).into());
             } // code lines need to be aggregated and then wrapped with single parent
             else if self.starting_code_finder.is_match(line_str) {
@@ -106,7 +104,8 @@ impl MarkdownToHtmlConverter {
                     matched_sections.push(TypeElement { section_type: SectionType::Ol, element: ol().child(gathered_ol.clone()).into() });
                     gathered_ol.clear();
                     ol_started = false;
-                } else if ul_started {               
+                } else if ul_started {       
+                    log!("add ul parent");        
                     matched_sections.push(TypeElement { section_type: SectionType::Ul, element: ul().child(gathered_ul.clone()).into() });
                     gathered_ul.clear();
                     ul_started = false;
@@ -134,8 +133,8 @@ impl MarkdownToHtmlConverter {
                         matched_sections = self.get_html_element_from_md(&self.link_finder, &matched_sections, TAG_NAME_A);
                     }
                 }               
-            }
-                                  
+            }            
+            // set final list of html elements                 
             if prior_line_carriage_return || self.starting_code_finder.is_match(line_str){
                 html_lines.push(p().child(matched_sections.iter().map(|type_element| type_element.element.clone()).collect::<Vec<HtmlElement<AnyElement>>>()).into());
                 prior_line_carriage_return = false;
@@ -146,7 +145,18 @@ impl MarkdownToHtmlConverter {
             if line.is_empty() || self.only_new_line_finder.is_match(line_str) {
                 prior_line_carriage_return = true;
             }
+
+            md_lines_index += 1;
         }
+
+        // if ol or ul was last may need to finish the wrap here
+        log!("ul_started {}, gathered_ul len {}", ul_started, gathered_ul.len());
+        if ul_started && gathered_ul.len() > 0 {
+            html_lines.push(div().child(ul().child(gathered_ul.clone())).into());
+            gathered_ul.clear();
+            ul_started = false;
+        }
+
         html_lines
     }
 

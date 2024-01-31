@@ -1,4 +1,4 @@
-use super::models::{LoginCredential, LoginResponse};
+use super::models::{LoginCredential, LoginResponse, Post};
 use super::models::{OutputId, NewPost};
 use reqwest::header::HeaderMap;
 use reqwest::{Client, StatusCode};
@@ -43,13 +43,27 @@ impl ApiService {
         match login_res {
             Ok(res) => {
                 match res.status() {
-                    StatusCode::OK => {
-                        res.json::<LoginResponse>().await                                                
-                    },
+                    StatusCode::OK => res.json::<LoginResponse>().await,
                     _ => Err(res.error_for_status().err().unwrap())
                 } 
             },
             Err(e) => Err(e)
         }               
+    }
+
+    pub async fn get_latest_posts(&self, last_offset: i32) -> Result<Vec<Post>, Error> {
+        let posts = self.client.get(format!("{}/{}/10/{}", API_DEV_URL, "post", last_offset))
+            .send()
+            .await;
+
+        match posts {
+            Ok(res) => {
+                match res.status() {
+                    StatusCode::OK => res.json::<Vec<Post>>().await,
+                    _ => Err(res.error_for_status().err().unwrap())
+                }
+            },
+            Err(e) => Err(e)
+        }
     }
 }

@@ -11,6 +11,7 @@ path = "src/main.rs"
 name = "rust-blog-web"
 
 [dependencies]
+chrono = { version = "0.4.31", features = ["serde"] }
 console_error_panic_hook = "0.1.7"
 derive_more = "0.99.17"
 leptos = { version = "0.5.4", features = ["csr", "nightly"] }

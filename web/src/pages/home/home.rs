@@ -1,11 +1,25 @@
+use leptos::logging::log;
 use leptos::*;
+use crate::common::components::post::post_preview::PostPreviewParams;
 use crate::common::components::{layout::Layout, post::post_preview::PostPreview};
-use crate::common::testing_utils::fake_data::get_fake_post_preview_data;
+use crate::common::api::api_service::ApiService;
 
 #[component]
 pub fn Home() -> impl IntoView {
-    let posts = create_resource(|| (), |_| async move {
-        get_fake_post_preview_data().await
+    let (last_offset, _set_last_offset) = create_signal(0);
+    let api_service = expect_context::<ReadSignal<ApiService>>();
+
+    let posts = create_resource(last_offset, move |offset| async move {
+        let result = api_service.get_untracked().get_latest_posts(offset).await;
+        match result {
+            Ok(data) => {
+                data
+            },
+            Err(e) => {
+                log!("Failed to get post data: {}", e);
+                vec![]
+            }
+        }
     });
 
     view! {
@@ -24,7 +38,11 @@ pub fn Home() -> impl IntoView {
                         key=|post| post.id
                         children=move |post| {
                             view! {
-                                <PostPreview post=post />
+                                <PostPreview post=PostPreviewParams {
+                                    id: post.id,
+                                    title: post.title.to_string(),
+                                    content: post.message.to_string()
+                                } />
                             }
                         }
                     />

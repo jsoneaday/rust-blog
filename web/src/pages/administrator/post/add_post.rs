@@ -49,6 +49,7 @@ pub fn AddPost() -> impl IntoView {
                             set_title(event_target_value(&ev));
                         } 
                         prop:value=title
+                        style="width: 100%"
                     />
                 </section>
                 <section class="form-section" style="height: 600px">
