@@ -1,5 +1,9 @@
 use regex::Regex;
-use leptos::{logging::warn, HtmlElement, html::{a, code, pre, div, h1, h2, i, img, li, ol, p, span, strong, ul, AnyElement, Img, A}};
+use leptos::{logging::{log, warn}, HtmlElement, html::{a, code, pre, div, h1, h2, i, img, li, ol, p, span, strong, ul, AnyElement, Img, A}};
+
+mod internal {
+    
+}
 
 pub struct MarkdownToHtmlConverter {
     pub heading_level_1_finder: Regex,
@@ -67,7 +71,7 @@ impl MarkdownToHtmlConverter {
             let line_str = line.as_str();
             let mut matched_sections: Vec<TypeElement> = vec![];   
                         
-            // lists behave differently and must be aggregated
+            // lists need to be aggregated and then wrapped by single parent
             if self.ordered_list_finder.is_match(line_str) {
                 if !ol_started {
                     ol_started = true;
@@ -80,7 +84,8 @@ impl MarkdownToHtmlConverter {
                 }
                 let new_line = self.unordered_list_finder.replace(line_str, "");
                 gathered_ul.push(li().child(new_line).into());
-            } else if self.starting_code_finder.is_match(line_str) {
+            } // code lines need to be aggregated and then wrapped with single parent
+            else if self.starting_code_finder.is_match(line_str) {
                 if !code_started {
                     code_started = true;
                     code_ended = false;
@@ -216,7 +221,7 @@ impl MarkdownToHtmlConverter {
         updated_elements
     }
 
-    /// Returns an inline set of elements
+    /// Returns a collection of elements within the given line
     fn get_html_element_from_md_line(&self, regex: &Regex, line: &str, section_type: &SectionType, markdown: Vec<&str>) -> Option<Vec<TypeElement>> {
         let match_list: Vec<String> = get_list_of_regex_matching_content(regex, line, markdown);   
         let non_match_sections: Vec<String> = get_list_of_non_matching_content(regex, line);
@@ -257,7 +262,7 @@ impl MarkdownToHtmlConverter {
         Some(elements)
     }
 
-    /// Will get embedded anchor and other content as well
+    /// Will get embedded anchor or image and other content as well
     fn get_anchor_or_img_from_md_link(&self, line: &str, md_is_image: bool) -> Option<Vec<TypeElement>> {  
         // name or title
         let link_names_list: Vec<String> = if !md_is_image { 
@@ -309,7 +314,7 @@ impl MarkdownToHtmlConverter {
                                                                                 
                 index += 1;
             }
-            // set last anchor element if there is one
+            // set last anchor or image element if there is one
             if index < link_names_list.len() {
                 let element = get_anchor_or_image_element(&link_names_list, &link_url_list, index, md_is_image);
                 if let Some(element) = element {
@@ -331,7 +336,7 @@ fn get_anchor_or_image_element(link_names_list: &Vec<String>, link_url_list: &Ve
         let next_link_name = format!("{}", link_name_item);
 
         if let Some(link_url_item) = link_url_list.get(index) {
-            let mut url = link_url_item.split(' ');
+            let mut url = link_url_item.split(' '); // e.g. (http://some.com "link title")
             let next_link_url = format!("{}", url.nth(0).unwrap());
 
             if !is_image {
@@ -459,6 +464,7 @@ struct TypeElement {
 enum SectionType {
     Anchor,
     Image,
+    /// String can be Div or Span
     String,
     Strong,
     Italic,
@@ -468,4 +474,29 @@ enum SectionType {
     H1,
     H2,
     Code
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use leptos::logging::log;
+    use wasm_bindgen_test::*;
+    use super::MarkdownToHtmlConverter;
+
+    #[allow(unused)]
+    const STANDALONE_LINK: &str = "[This is the link name](https://helloworld.com)";
+    #[allow(unused)]
+    const ONE_LINK_INSIDE_SENTENCE: &str = r#"You can find more info here! [Go Here](https://gohere.com "funny link") click that link"#;
+    #[allow(unused)]
+    const TWO_LINKS_INSIDE_SENTENCE: &str = r#"You can find more info here! [Go Here](https://gohere.com "funny link") click that link"#;
+
+    #[wasm_bindgen_test]
+    fn test_get_anchor_or_img_from_md_link_returns_anchor_when_passed_standalone_link() {
+        let md = MarkdownToHtmlConverter::new();
+
+        let elements = md.get_anchor_or_img_from_md_link(STANDALONE_LINK, false);
+        // log!("elements: {}", elements.unwrap().iter().map(|element| element.element.inner_text()));
+
+        // assert!(elements.unwrap().len() > 0);
+    }
 }
