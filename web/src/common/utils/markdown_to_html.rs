@@ -61,7 +61,6 @@ impl MarkdownToHtmlConverter {
         let mut gathered_code: Vec<HtmlElement<AnyElement>> = vec![];
 
         let mut prior_line_carriage_return = false;
-        let mut md_lines_index = 0;
         for md_line in md_lines {                               
             let line = md_line.trim().to_string();            
             let line_str = line.as_str();
@@ -145,8 +144,6 @@ impl MarkdownToHtmlConverter {
             if line.is_empty() || self.only_new_line_finder.is_match(line_str) {
                 prior_line_carriage_return = true;
             }
-
-            md_lines_index += 1;
         }
 
         // if ol or ul was last may need to finish the wrap here
@@ -465,13 +462,13 @@ const ENDING_CODE_REGEX: &str = r#"[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+\`|[\w
 
 /// Used as a precursor object, before converting to html, while finding matches
 #[derive(Clone)]
-struct TypeElement {
+pub struct TypeElement {
     pub section_type: SectionType,    
     pub element: HtmlElement<AnyElement>
 }
 
 #[derive(Clone, Debug, PartialEq)]
-enum SectionType {
+pub enum SectionType {
     Anchor,
     Image,
     /// String can be Div or Span
@@ -493,6 +490,8 @@ mod tests {
     use wasm_bindgen_test::*;
     use super::MarkdownToHtmlConverter;
 
+    wasm_bindgen_test_configure!(run_in_browser);
+
     #[allow(unused)]
     const STANDALONE_LINK: &str = "[This is the link name](https://helloworld.com)";
     #[allow(unused)]
@@ -505,8 +504,8 @@ mod tests {
         let md = MarkdownToHtmlConverter::new();
 
         let elements = md.get_anchor_or_img_from_md_link(STANDALONE_LINK, false);
-        // log!("elements: {}", elements.unwrap().iter().map(|element| element.element.inner_text()));
+        //log!("elements: {:?}", elements.clone().unwrap().iter().map(|element| element.element.inner_text()).collect::<Vec<String>>());
 
-        // assert!(elements.unwrap().len() > 0);
+        assert!(elements.unwrap().len() > 0);
     }
 }
