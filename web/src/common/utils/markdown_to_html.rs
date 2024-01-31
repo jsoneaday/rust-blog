@@ -20,7 +20,6 @@ pub struct MarkdownToHtmlConverter {
     pub link_url_finder: Regex,
     pub image_link_finder: Regex,
     pub image_link_alt_finder: Regex,
-    pub image_link_url_finder: Regex,
     pub only_new_line_finder: Regex
 }
 
@@ -37,12 +36,11 @@ impl MarkdownToHtmlConverter {
             code_finder: Regex::new(r#"\`[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+\`|\`{2}[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+\`{2}"#).unwrap(),
             starting_code_finder: Regex::new(STARTING_CODE_REGEX).unwrap(),
             ending_code_finder: Regex::new(ENDING_CODE_REGEX).unwrap(),
-            link_finder: Regex::new(r#"\[(.+)\]\(([^ ]+?)( "(.+)")?\)"#).unwrap(),
+            link_finder: Regex::new(r#"\[([^\]]+)\]\(([^ )]+?)( "([^"]+)")?\)"#).unwrap(),
             link_name_finder: Regex::new(LINK_NAME_REGEX).unwrap(),
             link_url_finder: Regex::new(LINK_URL_REGEX).unwrap(),
-            image_link_finder: Regex::new(r#"!\[(.+)\]\(([^ ]+?)( "(.+)")?\)"#).unwrap(),
-            image_link_alt_finder: Regex::new(r#"!\[(.+)\]"#).unwrap(),    
-            image_link_url_finder: Regex::new(LINK_URL_REGEX).unwrap(),
+            image_link_finder: Regex::new(r#"!\[([^\]]+)\]\(([^ )]+?)( "([^"]+)")?\)"#).unwrap(),
+            image_link_alt_finder: Regex::new(r#"!\[([^\]]+)\]"#).unwrap(),
             only_new_line_finder: Regex::new(r"^\s+$").unwrap()
         }
     }
@@ -127,7 +125,7 @@ impl MarkdownToHtmlConverter {
                     matched_sections = self.get_html_element_from_md(&self.italic_finder, &matched_sections, TAG_NAME_ITALIC);
 
                     if self.image_link_finder.is_match(line_str) {
-                        matched_sections = self.get_html_element_from_md(&self.link_finder, &matched_sections, TAG_NAME_IMG);
+                        matched_sections = self.get_html_element_from_md(&self.image_link_finder, &matched_sections, TAG_NAME_IMG);
                     } else {
                         matched_sections = self.get_html_element_from_md(&self.link_finder, &matched_sections, TAG_NAME_A);
                     }
@@ -271,33 +269,51 @@ impl MarkdownToHtmlConverter {
 
     /// Will get embedded anchor or image and other content as well
     fn get_anchor_or_img_from_md_link(&self, line: &str, md_is_image: bool) -> Option<Vec<TypeElement>> {  
-        // name or title
-        let link_names_list: Vec<String> = if !md_is_image { 
-            get_list_of_regex_matching_content(&self.link_name_finder, line, vec!["[", "]"])
+        // grab name and url together for now
+        let link_list: Vec<String> = if !md_is_image { 
+            get_list_of_regex_matching_content(&self.link_finder, line, vec![])
         } else {
-            get_list_of_regex_matching_content(&self.image_link_alt_finder, line, vec!["![", "]"])
+            get_list_of_regex_matching_content(&self.image_link_finder, line, vec![])
         };
-        let link_url_list: Vec<String> = get_list_of_regex_matching_content(&self.link_url_finder, line, vec!["(", ")"]);
-        if link_names_list.len() == 0 || link_url_list.len() == 0 {
-            warn!("link names list and link url list seem not to match!");
-            return None;
-        }        
+        log!("link_list: {:?}", link_list);
+        let link_names_list: Vec<String> = if !md_is_image {
+            link_list.clone().iter().map(|link| {
+                let found_name = self.link_name_finder.find(link).unwrap().as_str();
+                let clean_name = &found_name.replace("[", "").replace("]", "");
+                clean_name.clone()
+            }).collect::<Vec<String>>()
+        } else {
+            link_list.clone().iter().map(|link| {
+                let found_name = self.image_link_alt_finder.find(link).unwrap().as_str();
+                let clean_name = &found_name.replace("![", "").replace("]", "");
+                clean_name.clone()
+            }).collect::<Vec<String>>()
+        };
+        log!("link_names_list: {:?}", link_names_list);
+        let link_url_list: Vec<String> = link_list.iter().map(|link| {
+            let mut found_url = self.link_url_finder.find(link).unwrap().as_str();
+            let mut clean_url = &found_url.replace("(", "").replace(")", "").to_string();
+            let url = clean_url.split(' ').nth(0).unwrap(); // get link without title
+            url.to_string()
+        }).collect::<Vec<String>>();
+        log!("link_url_list: {:?}", link_url_list);
+
         let non_match_sections: Vec<String> = get_list_of_non_matching_content(if !md_is_image {
             &self.link_finder
         } else {
             &self.image_link_finder
         }, line);
+        log!("non_match_sections: {:?}", non_match_sections);
         
         let mut elements: Vec<TypeElement> = vec![];
-        if non_match_sections.len() == 0 { // if no non-match sections then entire line is a link
+        if non_match_sections.len() == 0 { // if no non-match sections then entire line is a link            
             elements.push(TypeElement { 
                 section_type: get_anchor_or_image_type(md_is_image), 
                 element: if !md_is_image {
                         setup_anchor(link_url_list[0].clone().as_str(), link_names_list[0].clone().as_str()).into()
                     } else {
-                        let mut url = link_url_list[0].split(' ');
-                        setup_image(url.nth(0).unwrap(), link_names_list[0].clone().as_str()).into()
-                    }                     
+                        setup_image(link_url_list[0].clone().as_str(), link_names_list[0].clone().as_str()).into()
+                    }
             });  
         } else {
             let mut index = 0;
@@ -368,6 +384,7 @@ fn get_list_of_regex_matching_content(finder: &Regex, line: &str, markdown: Vec<
 
     for found in finder.find_iter(line) {
         let mut found_content = found.as_str().to_string();
+        log!("found_content: {}", found_content);
         for md in &markdown {
             found_content = found_content.replace(md, "");
         }
@@ -455,7 +472,7 @@ const TAG_NAME_ITALIC_BOLD: &str = "istrong";
 
 const H1_REGEX: &str = r"^\#{1}\s+";
 const H2_REGEX: &str = r"^\#{2}\s+";
-const LINK_NAME_REGEX: &str = r#"\[(.+)\]"#;
+const LINK_NAME_REGEX: &str = r#"\[([^\]]+)\]"#;
 const LINK_URL_REGEX: &str = r#"\(([^ ]+?)( "(.+)")?\)"#;
 const STARTING_CODE_REGEX: &str = r#"\`[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+|\`{2}[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+"#;
 const ENDING_CODE_REGEX: &str = r#"[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+\`|[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+\`{2}"#;
@@ -497,15 +514,51 @@ mod tests {
     #[allow(unused)]
     const ONE_LINK_INSIDE_SENTENCE: &str = r#"You can find more info here! [Go Here](https://gohere.com "funny link") click that link"#;
     #[allow(unused)]
-    const TWO_LINKS_INSIDE_SENTENCE: &str = r#"You can find more info here! [Go Here](https://gohere.com "funny link") click that link"#;
+    const TWO_LINKS_INSIDE_SENTENCE: &str = r#"[First Link](https://first.com "first")You can find more info here! [Second Link](https://second.com "second") click that link"#;
 
     #[wasm_bindgen_test]
     fn test_get_anchor_or_img_from_md_link_returns_anchor_when_passed_standalone_link() {
         let md = MarkdownToHtmlConverter::new();
 
         let elements = md.get_anchor_or_img_from_md_link(STANDALONE_LINK, false);
-        //log!("elements: {:?}", elements.clone().unwrap().iter().map(|element| element.element.inner_text()).collect::<Vec<String>>());
 
-        assert!(elements.unwrap().len() > 0);
+        assert!(elements.clone().unwrap().len() == 1);        
+        assert!(elements.clone().unwrap().iter().find(|el| el.section_type == SectionType::Anchor && el.element.outer_html().contains("</a>")).is_some());
+        assert!(elements.clone().unwrap().iter().find(|el| el.section_type == SectionType::Anchor && el.element.outer_html().contains("href=\"https://helloworld.com\"")).is_some());
+        assert!(elements.unwrap().iter().find(|el| el.section_type == SectionType::Anchor && el.element.outer_html().contains("This is the link name")).is_some());
+    }
+    
+    #[wasm_bindgen_test]
+    fn test_get_anchor_or_img_from_md_link_returns_anchor_when_passed_one_link_inside_sentence() {
+        let md = MarkdownToHtmlConverter::new();
+
+        let elements = md.get_anchor_or_img_from_md_link(ONE_LINK_INSIDE_SENTENCE, false);
+
+        assert!(elements.unwrap().len() == 3);
+    }
+
+    #[wasm_bindgen_test]
+    fn test_get_anchor_or_img_from_md_link_returns_anchor_when_passed_two_links_inside_sentence() {
+        let md = MarkdownToHtmlConverter::new();
+
+        let elements = md.get_anchor_or_img_from_md_link(TWO_LINKS_INSIDE_SENTENCE, false);
+
+        assert!(elements.clone().unwrap().len() == 4);
+        assert!(elements.clone().unwrap().iter().find(|el| el.section_type == SectionType::Anchor && el.element.outer_html().contains("</a>")).is_some());
+        assert!(
+            elements.clone().unwrap().iter().find(|el| el.section_type == SectionType::Anchor && el.element.outer_html().contains("href=\"https://first.com\"")).is_some()
+            &&
+            elements.clone().unwrap().iter().find(|el| el.section_type == SectionType::Anchor && el.element.outer_html().contains("href=\"https://second.com\"")).is_some()
+        );
+        assert!(
+            elements.clone().unwrap().iter().find(|el| el.section_type == SectionType::Anchor && el.element.outer_html().contains("First Link")).is_some()
+            &&
+            elements.clone().unwrap().iter().find(|el| el.section_type == SectionType::Anchor && el.element.outer_html().contains("Second Link")).is_some()
+        );
+        assert!(
+            elements.clone().unwrap().iter().find(|el| el.section_type == SectionType::String && el.element.outer_html().contains("You can find more info here!")).is_some()
+            &&
+            elements.clone().unwrap().iter().find(|el| el.section_type == SectionType::String && el.element.outer_html().contains("click that link")).is_some()
+        );
     }
 }
