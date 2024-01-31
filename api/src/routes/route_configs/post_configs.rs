@@ -1,5 +1,5 @@
 use actix_web::web::{ServiceConfig, self};
-use crate::routes::post::routes::{create_post, get_posts};
+use crate::routes::post::routes::{create_post, get_post_previews};
 use crate::common::{authentication::auth_service::AuthService, repository::base::DbRepo};
 
 pub fn post_configs(cfg: &mut ServiceConfig) {
@@ -9,6 +9,6 @@ pub fn post_configs(cfg: &mut ServiceConfig) {
     )
     .service(
         web::resource("/post/{page_size}/{last_offset}")
-            .route(web::get().to(get_posts::<DbRepo, AuthService>))
+            .route(web::get().to(get_post_previews::<DbRepo, AuthService>))
     );
 }

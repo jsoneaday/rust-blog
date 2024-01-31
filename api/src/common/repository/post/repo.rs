@@ -46,3 +46,26 @@ impl QueryPostsFn for DbRepo {
         internal::query_posts(self.get_conn(), page_size, last_offset).await
     }
 }
+
+#[async_trait]
+pub trait QueryPostsPreviewFn {
+    async fn query_post_previews(&self, page_size: i32, last_offset: i64) -> Result<Vec<Post>, Error>;
+}
+
+#[async_trait]
+impl QueryPostsPreviewFn for DbRepo {
+    async fn query_post_previews(&self, page_size: i32, last_offset: i64) -> Result<Vec<Post>, Error> {
+        let post_result = internal::query_posts(self.get_conn(), page_size, last_offset).await;
+        match post_result {
+            Ok(posts) => Ok(posts.iter().map(|post| Post {
+                id: post.id,
+                created_at: post.created_at,
+                updated_at: post.updated_at,
+                title: post.title.to_string(),
+                message: post.message[0..if post.message.len() < 250 { post.message.len() } else { 250 }].to_string(),
+                admin_id: post.admin_id
+            }).collect::<Vec<Post>>()),
+            Err(e) => Err(e)
+        }
+    }
+}
