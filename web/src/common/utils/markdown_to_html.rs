@@ -508,57 +508,108 @@ mod tests {
     use super::MarkdownToHtmlConverter;
 
     wasm_bindgen_test_configure!(run_in_browser);
+ 
+    mod tests_for_get_anchor_or_img_from_md_link {
+        use super::*;
 
-    #[allow(unused)]
-    const STANDALONE_LINK: &str = "[This is the link name](https://helloworld.com)";
-    #[allow(unused)]
-    const ONE_LINK_INSIDE_SENTENCE: &str = r#"You can find more info here! [Go Here](https://gohere.com "funny link") click that link"#;
-    #[allow(unused)]
-    const TWO_LINKS_INSIDE_SENTENCE: &str = r#"[First Link](https://first.com "first")You can find more info here! [Second Link](https://second.com "second") click that link"#;
+        #[allow(unused)]
+        const STANDALONE_LINK: &str = "[Standalone Link](https://standalonelink.com)";
+        #[allow(unused)]
+        const ONE_LINK_INSIDE_SENTENCE: &str = r#"You can find more info here! [Go Here](https://gohere.com "funny link") click that link"#;
+        #[allow(unused)]
+        const TWO_LINKS_INSIDE_SENTENCE: &str = r#"[First Link](https://first.com "first")You can find more info here! [Second Link](https://second.com "second") click that link"#;
+        #[allow(unused)]
+        const STANDALONE_IMG_LINK: &str = "![Standalone Image Link](https://imagelink.com)";
+        #[allow(unused)]
+        const ONE_IMG_LINK_INSIDE_SENTENCE: &str = r#"You can find more info here! ![Go Here](https://gohere.com "funny link") click that link"#;
+        #[allow(unused)]
+        const TWO_IMG_LINKS_INSIDE_SENTENCE: &str = r#"![First Link](https://first.com "first")You can find more info here! ![Second Link](https://second.com "second") click that link"#;
 
-    #[wasm_bindgen_test]
-    fn test_get_anchor_or_img_from_md_link_returns_anchor_when_passed_standalone_link() {
-        let md = MarkdownToHtmlConverter::new();
+        #[wasm_bindgen_test]
+        fn test_get_anchor_or_img_from_md_link_returns_anchor_when_passed_standalone_link() {
+            let md = MarkdownToHtmlConverter::new();
 
-        let elements = md.get_anchor_or_img_from_md_link(STANDALONE_LINK, false);
+            let elements = md.get_anchor_or_img_from_md_link(STANDALONE_LINK, false);
 
-        assert!(elements.clone().unwrap().len() == 1);        
-        assert!(elements.clone().unwrap().iter().find(|el| el.section_type == SectionType::Anchor && el.element.outer_html().contains("</a>")).is_some());
-        assert!(elements.clone().unwrap().iter().find(|el| el.section_type == SectionType::Anchor && el.element.outer_html().contains("href=\"https://helloworld.com\"")).is_some());
-        assert!(elements.unwrap().iter().find(|el| el.section_type == SectionType::Anchor && el.element.outer_html().contains("This is the link name")).is_some());
-    }
-    
-    #[wasm_bindgen_test]
-    fn test_get_anchor_or_img_from_md_link_returns_anchor_when_passed_one_link_inside_sentence() {
-        let md = MarkdownToHtmlConverter::new();
+            assert!(elements.clone().unwrap().len() == 1);        
+            assert!(elements.clone().unwrap().iter().find(|el| el.section_type == SectionType::Anchor && el.element.outer_html().contains("</a>")).is_some());
+            assert!(elements.clone().unwrap().iter().find(|el| el.section_type == SectionType::Anchor && el.element.outer_html().contains("href=\"https://standalonelink.com\"")).is_some());
+            assert!(elements.unwrap().iter().find(|el| el.section_type == SectionType::Anchor && el.element.outer_html().contains("Standalone Link")).is_some());
+        }
+        
+        #[wasm_bindgen_test]
+        fn test_get_anchor_or_img_from_md_link_returns_anchor_when_passed_one_link_inside_sentence() {
+            let md = MarkdownToHtmlConverter::new();
 
-        let elements = md.get_anchor_or_img_from_md_link(ONE_LINK_INSIDE_SENTENCE, false);
+            let elements = md.get_anchor_or_img_from_md_link(ONE_LINK_INSIDE_SENTENCE, false);
 
-        assert!(elements.unwrap().len() == 3);
-    }
+            assert!(elements.unwrap().len() == 3);
+        }
 
-    #[wasm_bindgen_test]
-    fn test_get_anchor_or_img_from_md_link_returns_anchor_when_passed_two_links_inside_sentence() {
-        let md = MarkdownToHtmlConverter::new();
+        #[wasm_bindgen_test]
+        fn test_get_anchor_or_img_from_md_link_returns_anchor_when_passed_two_links_inside_sentence() {
+            let md = MarkdownToHtmlConverter::new();
 
-        let elements = md.get_anchor_or_img_from_md_link(TWO_LINKS_INSIDE_SENTENCE, false);
+            let elements = md.get_anchor_or_img_from_md_link(TWO_LINKS_INSIDE_SENTENCE, false);
 
-        assert!(elements.clone().unwrap().len() == 4);
-        assert!(elements.clone().unwrap().iter().find(|el| el.section_type == SectionType::Anchor && el.element.outer_html().contains("</a>")).is_some());
-        assert!(
-            elements.clone().unwrap().iter().find(|el| el.section_type == SectionType::Anchor && el.element.outer_html().contains("href=\"https://first.com\"")).is_some()
-            &&
-            elements.clone().unwrap().iter().find(|el| el.section_type == SectionType::Anchor && el.element.outer_html().contains("href=\"https://second.com\"")).is_some()
-        );
-        assert!(
-            elements.clone().unwrap().iter().find(|el| el.section_type == SectionType::Anchor && el.element.outer_html().contains("First Link")).is_some()
-            &&
-            elements.clone().unwrap().iter().find(|el| el.section_type == SectionType::Anchor && el.element.outer_html().contains("Second Link")).is_some()
-        );
-        assert!(
-            elements.clone().unwrap().iter().find(|el| el.section_type == SectionType::String && el.element.outer_html().contains("You can find more info here!")).is_some()
-            &&
-            elements.clone().unwrap().iter().find(|el| el.section_type == SectionType::String && el.element.outer_html().contains("click that link")).is_some()
-        );
+            assert!(elements.clone().unwrap().len() == 4);
+            assert!(elements.clone().unwrap().iter().find(|el| el.section_type == SectionType::Anchor && el.element.outer_html().contains("</a>")).is_some());
+            assert!(
+                elements.clone().unwrap().iter().find(|el| el.section_type == SectionType::Anchor && el.element.outer_html().contains("href=\"https://first.com\"")).is_some()
+                && elements.clone().unwrap().iter().find(|el| el.section_type == SectionType::Anchor && el.element.outer_html().contains("href=\"https://second.com\"")).is_some()
+            );
+            assert!(
+                elements.clone().unwrap().iter().find(|el| el.section_type == SectionType::Anchor && el.element.outer_html().contains("First Link")).is_some()
+                && elements.clone().unwrap().iter().find(|el| el.section_type == SectionType::Anchor && el.element.outer_html().contains("Second Link")).is_some()
+            );
+            assert!(
+                elements.clone().unwrap().iter().find(|el| el.section_type == SectionType::String && el.element.outer_html().contains("You can find more info here!")).is_some()
+                && elements.clone().unwrap().iter().find(|el| el.section_type == SectionType::String && el.element.outer_html().contains("click that link")).is_some()
+            );
+        }
+
+        #[wasm_bindgen_test]
+        fn test_get_anchor_or_img_from_md_link_returns_img_when_passed_standalone_link() {
+            let md = MarkdownToHtmlConverter::new();
+
+            let elements = md.get_anchor_or_img_from_md_link(STANDALONE_IMG_LINK, true);
+            log!("elements: {:?}", elements.clone().unwrap().iter().map(|el| el.element.outer_html()).collect::<Vec<String>>());
+
+            assert!(elements.clone().unwrap().len() == 1);        
+            assert!(elements.clone().unwrap().iter().find(|el| el.section_type == SectionType::Image && el.element.outer_html().contains("<img")).is_some());
+            assert!(elements.clone().unwrap().iter().find(|el| el.section_type == SectionType::Image && el.element.outer_html().contains("src=\"https://imagelink.com\"")).is_some());
+            assert!(elements.unwrap().iter().find(|el| el.section_type == SectionType::Image && el.element.outer_html().contains("Standalone Image Link")).is_some());
+        }
+
+        #[wasm_bindgen_test]
+        fn test_get_anchor_or_img_from_md_link_returns_img_when_passed_one_link_inside_sentence() {
+            let md = MarkdownToHtmlConverter::new();
+
+            let elements = md.get_anchor_or_img_from_md_link(ONE_IMG_LINK_INSIDE_SENTENCE, true);
+
+            assert!(elements.unwrap().len() == 3);
+        }
+
+        #[wasm_bindgen_test]
+        fn test_get_anchor_or_img_from_md_link_returns_img_when_passed_two_links_inside_sentence() {
+            let md = MarkdownToHtmlConverter::new();
+
+            let elements = md.get_anchor_or_img_from_md_link(TWO_IMG_LINKS_INSIDE_SENTENCE, true);
+
+            assert!(elements.clone().unwrap().len() == 4);
+            assert!(elements.clone().unwrap().iter().find(|el| el.section_type == SectionType::Image && el.element.outer_html().contains("<img")).is_some());
+            assert!(
+                elements.clone().unwrap().iter().find(|el| el.section_type == SectionType::Image && el.element.outer_html().contains("src=\"https://first.com\"")).is_some()
+                && elements.clone().unwrap().iter().find(|el| el.section_type == SectionType::Image && el.element.outer_html().contains("src=\"https://second.com\"")).is_some()
+            );
+            assert!(
+                elements.clone().unwrap().iter().find(|el| el.section_type == SectionType::Image && el.element.outer_html().contains("First Link")).is_some()
+                && elements.clone().unwrap().iter().find(|el| el.section_type == SectionType::Image && el.element.outer_html().contains("Second Link")).is_some()
+            );
+            assert!(
+                elements.clone().unwrap().iter().find(|el| el.section_type == SectionType::String && el.element.outer_html().contains("You can find more info here!")).is_some()
+                && elements.clone().unwrap().iter().find(|el| el.section_type == SectionType::String && el.element.outer_html().contains("click that link")).is_some()
+            );
+        }
     }
 }
