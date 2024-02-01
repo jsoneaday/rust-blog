@@ -286,8 +286,8 @@ impl MarkdownToHtmlConverter {
             }).collect::<Vec<String>>()
         };
         let link_url_list: Vec<String> = link_list.iter().map(|link| {
-            let mut found_url = self.link_url_finder.find(link).unwrap().as_str();
-            let mut clean_url = &found_url.replace("(", "").replace(")", "").to_string();
+            let found_url = self.link_url_finder.find(link).unwrap().as_str();
+            let clean_url = &found_url.replace("(", "").replace(")", "").to_string();
             let url = clean_url.split(' ').nth(0).unwrap(); // get link without title
             url.to_string()
         }).collect::<Vec<String>>();
@@ -697,6 +697,8 @@ mod tests {
             assert!(new_type_elements.len() == 1);
             assert!(new_type_elements.iter().find(|el| el.section_type == SectionType::H2).unwrap().element.outer_html().contains("</h2>"));
         }
+
+        // need a italicbold test here
 
         #[wasm_bindgen_test]
         fn test_get_html_element_from_md_returns_bold() {

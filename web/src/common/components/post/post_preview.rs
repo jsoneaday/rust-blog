@@ -14,13 +14,18 @@ pub fn PostPreview(post: PostPreviewParams) -> impl IntoView {
     let (content, _set_content) = create_signal(post.content);
     let html_content = move || {
         let md_to_html = MarkdownToHtmlConverter::new();
-        md_to_html.convert_md_to_html(content())
+        let mut html = md_to_html.convert_md_to_html(content());
+        let inner_text = html.clone().last().unwrap().inner_text();
+        // previews are cut short, end with ellipsis
+        html.last_mut().unwrap().set_inner_text(format!("{}{}", inner_text, " ...").as_str());
+
+        html
     };
 
     view! {
         <section>
             <h1>{post.title}</h1>
-            <div>{html_content}</div>
+            <div class="preview-content">{html_content}</div>
         </section>
     }
 }
