@@ -1,4 +1,5 @@
 use leptos::*;
+use leptos_meta::*;
 use serde::{Deserialize, Serialize};
 use crate::common::utils::markdown_to_html::MarkdownToHtmlConverter;
 
@@ -21,9 +22,22 @@ pub fn PostPreview(post: PostPreviewParams) -> impl IntoView {
 
         html
     };
+    let meta_content = move || {
+        if content().len() == 0 {
+            "".to_string()
+        } else {
+            let short_content = if content().len() < 100 {
+                content()
+            } else {
+                (&content()[0..100]).to_string()
+            };
+            short_content.to_string()
+        }
+     };
 
     view! {
         <section>
+            <Meta name="description" content=meta_content />
             <h1>{post.title}</h1>
             <div class="preview-content">{html_content}</div>
         </section>

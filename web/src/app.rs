@@ -1,4 +1,5 @@
 use leptos::*;
+use leptos_meta::*;
 use leptos_router::*;
 use crate::common::api::api_service::ApiService;
 use crate::common::api::models::LoginResponse;
@@ -16,6 +17,7 @@ pub fn App() -> impl IntoView {
     
     view! {
         <Router>
+            <Title formatter=|text| format!("RustyIndie {text}") />
             <main>
                 <Routes>
                     <Route path="/" view=Home />

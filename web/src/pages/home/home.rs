@@ -1,5 +1,6 @@
 use leptos::logging::log;
 use leptos::*;
+use leptos_meta::*;
 use crate::common::components::post::post_preview::PostPreviewParams;
 use crate::common::components::{layout::Layout, post::post_preview::PostPreview};
 use crate::common::api::api_service::ApiService;
@@ -24,6 +25,7 @@ pub fn Home() -> impl IntoView {
 
     view! {
         <Layout>
+            <Title text="- Blog Posts" />
             <div class="home-menu">
                 <h1>"Rust Indie Dev"</h1>
                 <strong>"David Choi"</strong>
