@@ -27,6 +27,8 @@ pub fn Home() -> impl IntoView {
             <div class="home-menu">
                 <h1>"Rust Indie Dev"</h1>
                 <strong>"David Choi"</strong>
+                <small style="margin-top: 1em">"This app is built entirely with Rust: Leptos, Actix Web"</small>
+                <b style="margin-top: 0.5em"><i><small>"contact me"</small></i></b>
             </div>
             <div class="home-content">
                 <ul>

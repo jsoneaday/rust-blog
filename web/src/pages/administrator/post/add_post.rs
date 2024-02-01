@@ -29,6 +29,11 @@ pub fn AddPost() -> impl IntoView {
         }
     });
 
+    let disable_post_submit = move || match login_resp() {
+        Some(login_result) => false,
+        None => true
+    };
+
     view! {
         <div class="home-content">
             <h2>"Add Post"</h2>
@@ -68,7 +73,7 @@ pub fn AddPost() -> impl IntoView {
                     </textarea>
                 </section>
                 <section class="form-section">
-                    <button type="submit" class="primary-btn" >"Post"</button>                    
+                    <button prop:disabled=disable_post_submit type="submit" class="primary-btn" >"Post"</button>                    
                 </section>
             </form>
         </div>

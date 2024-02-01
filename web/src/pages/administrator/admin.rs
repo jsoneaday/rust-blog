@@ -1,6 +1,7 @@
 use leptos::*;
 use leptos::logging::log;
 use leptos_router::*;
+use crate::common::api::models::LoginResponse;
 use crate::common::components::layout::Layout;
 use crate::common::components::authentication::login::Login;
 use crate::common::components::modal::Modal;
@@ -15,6 +16,15 @@ pub fn Admin() -> impl IntoView {
     log!("pathname: {}", location.pathname.get_untracked());
     let (current_selected_nav, set_current_selected_nav) = create_signal(location.pathname.get_untracked());
     let (dialog_open, set_dialog_open) = create_signal(false);    
+    let (login_resp, _) = expect_context::<(ReadSignal<Option<LoginResponse>>, WriteSignal<Option<LoginResponse>>)>();
+
+    create_effect(move |_| {
+        if let None = login_resp() {
+            set_dialog_open(true);
+        } else {
+            set_dialog_open(false);
+        }
+    });
     
     view! {
         <Layout>            
@@ -37,11 +47,7 @@ pub fn Admin() -> impl IntoView {
                         }>"Manage Posts"</a>
                     </li>
                     <li>
-                        <button class="" on:click=move |_| {
-                            set_dialog_open(!dialog_open());
-                            log!("try open dialog");
-                        }>"Login"</button>
-                        <Modal open_state=dialog_open set_open_state=set_dialog_open>
+                        <Modal disable_dismiss=true open_state=dialog_open set_open_state=set_dialog_open>
                             <Login />
                         </Modal>
                     </li>

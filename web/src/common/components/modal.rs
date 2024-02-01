@@ -3,20 +3,22 @@ use leptos::html::Div;
 use leptos_use::on_click_outside;
 
 #[component]
-pub fn Modal(children: ChildrenFn, open_state: ReadSignal<bool>, set_open_state: WriteSignal<bool>) -> impl IntoView {
+pub fn Modal(children: ChildrenFn, disable_dismiss: bool, open_state: ReadSignal<bool>, set_open_state: WriteSignal<bool>) -> impl IntoView {
     let container_ref = create_node_ref::<Div>();
     let children = store_value(children);
 
-    let dismiss_modal_with_keyboard = window_event_listener(ev::keydown, move |ev| {
-        if ev.key() == "Escape" || ev.key() == "q" || ev.key() == "Q" {
-            set_open_state(false);
-        }
-    });
-    on_cleanup(move || dismiss_modal_with_keyboard.remove());
+    if !disable_dismiss {
+        let dismiss_modal_with_keyboard = window_event_listener(ev::keydown, move |ev| {
+            if ev.key() == "Escape" || ev.key() == "q" || ev.key() == "Q" {
+                set_open_state(false);
+            }
+        });
+        on_cleanup(move || dismiss_modal_with_keyboard.remove());
 
-    on_cleanup(on_click_outside(container_ref, move |_| {
-        set_open_state(false);
-    }));
+        on_cleanup(on_click_outside(container_ref, move |_| {
+            set_open_state(false);
+        }));
+    }
 
     view! {
         <Show when=open_state fallback=|| ()>

@@ -180,7 +180,7 @@ input[type="reset"] {
   outline: inherit;
 }
 
-.input {
+input {
   outline: 0;
   border: solid 1px var(--tertiary-font-cl);
   border-radius: 5px;
