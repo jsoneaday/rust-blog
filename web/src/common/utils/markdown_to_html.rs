@@ -70,14 +70,14 @@ impl MarkdownToHtmlConverter {
                     ol_started = true;
                 }
                 let new_line = self.ordered_list_finder.replace(line_str, "");
-                gathered_ol.push(li().child(new_line).into());
+                gathered_ol.push(li().child(new_line.into_owned()).into());
             } else if self.unordered_list_finder.is_match(line_str) {
                 if !ul_started {
                     ul_started = true;
                 }
                 
                 let new_line = self.unordered_list_finder.replace(line_str, "");
-                gathered_ul.push(li().child(new_line).into());
+                gathered_ul.push(li().child(new_line.into_owned()).into());
             } // code lines need to be aggregated and then wrapped with single parent
             else if self.starting_code_finder.is_match(line_str) {
                 if !code_started {
@@ -157,9 +157,9 @@ impl MarkdownToHtmlConverter {
         
         for element_to_check in elements_to_check {            
             let section_type = element_to_check.section_type.clone();
-            let element = element_to_check.element.clone();            
-            let element_inner_text = element.inner_text().clone();
-            let element_inner_text = element_inner_text.as_str();
+            let element = element_to_check.element.clone();
+            let owned_inner_text = element.inner_text().clone();
+            let element_inner_text = owned_inner_text.as_str();
 
             if section_type != SectionType::Anchor &&
                 section_type != SectionType::Italic &&
@@ -167,11 +167,11 @@ impl MarkdownToHtmlConverter {
                 section_type != SectionType::ItalicBold {            
                 if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_H1 {
                     let new_line = regex.replace(element_inner_text, "");
-                    updated_elements.push(TypeElement { section_type: SectionType::H1, element: h1().child(new_line).into() });
+                    updated_elements.push(TypeElement { section_type: SectionType::H1, element: h1().child(new_line.into_owned()).into() });
                 } 
                 else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_H2 {
                     let new_line = regex.replace(element_inner_text, "");              
-                    updated_elements.push(TypeElement { section_type: SectionType::H2, element: h2().child(new_line).into() });
+                    updated_elements.push(TypeElement { section_type: SectionType::H2, element: h2().child(new_line.into_owned()).into() });
                 } 
                 else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_ITALIC_BOLD {
                     let elements = MarkdownToHtmlConverter::get_html_element_from_md_line(regex, element_inner_text, &SectionType::ItalicBold, vec!["***"]);

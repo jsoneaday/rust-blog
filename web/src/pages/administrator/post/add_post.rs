@@ -30,7 +30,7 @@ pub fn AddPost() -> impl IntoView {
     });
 
     let disable_post_submit = move || match login_resp() {
-        Some(login_result) => false,
+        Some(_login_result) => false,
         None => true
     };
 
