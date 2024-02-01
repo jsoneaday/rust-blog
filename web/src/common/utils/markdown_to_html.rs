@@ -77,7 +77,6 @@ impl MarkdownToHtmlConverter {
                 }
                 
                 let new_line = self.unordered_list_finder.replace(line_str, "");
-                log!("ul li line: {}, {}", new_line, ul_started);
                 gathered_ul.push(li().child(new_line).into());
             } // code lines need to be aggregated and then wrapped with single parent
             else if self.starting_code_finder.is_match(line_str) {
@@ -101,8 +100,7 @@ impl MarkdownToHtmlConverter {
                     matched_sections.push(TypeElement { section_type: SectionType::Ol, element: ol().child(gathered_ol.clone()).into() });
                     gathered_ol.clear();
                     ol_started = false;
-                } else if ul_started {       
-                    log!("add ul parent");        
+                } else if ul_started {            
                     matched_sections.push(TypeElement { section_type: SectionType::Ul, element: ul().child(gathered_ul.clone()).into() });
                     gathered_ul.clear();
                     ul_started = false;
@@ -145,7 +143,6 @@ impl MarkdownToHtmlConverter {
         }
 
         // if ol or ul was last may need to finish the wrap here
-        log!("ul_started {}, gathered_ul len {}", ul_started, gathered_ul.len());
         if ul_started && gathered_ul.len() > 0 {
             html_lines.push(div().child(ul().child(gathered_ul.clone())).into());
             gathered_ul.clear();
@@ -177,7 +174,7 @@ impl MarkdownToHtmlConverter {
                     updated_elements.push(TypeElement { section_type: SectionType::H2, element: h2().child(new_line).into() });
                 } 
                 else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_ITALIC_BOLD {
-                    let elements = self.get_html_element_from_md_line(regex, element_inner_text, &SectionType::ItalicBold, vec!["***"]);
+                    let elements = MarkdownToHtmlConverter::get_html_element_from_md_line(regex, element_inner_text, &SectionType::ItalicBold, vec!["***"]);
                     if let Some(elements) = elements {
                         for element in elements {
                             updated_elements.push(TypeElement { section_type: element.section_type, element: element.element});
@@ -185,7 +182,7 @@ impl MarkdownToHtmlConverter {
                     }
                 } 
                 else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_STRONG {                
-                    let elements = self.get_html_element_from_md_line(regex, element_inner_text, &SectionType::Strong, vec!["**"]);
+                    let elements = MarkdownToHtmlConverter::get_html_element_from_md_line(regex, element_inner_text, &SectionType::Strong, vec!["**"]);
                     if let Some(elements) = elements {
                         for element in elements {
                             updated_elements.push(TypeElement { section_type: element.section_type, element: element.element});
@@ -193,7 +190,7 @@ impl MarkdownToHtmlConverter {
                     }
                 } 
                 else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_ITALIC {   
-                    let elements = self.get_html_element_from_md_line(regex, element_inner_text, &SectionType::Italic, vec!["*"]);
+                    let elements = MarkdownToHtmlConverter::get_html_element_from_md_line(regex, element_inner_text, &SectionType::Italic, vec!["*"]);
                     if let Some(elements) = elements {
                         for element in elements {
                             updated_elements.push(TypeElement { section_type: element.section_type, element: element.element});
@@ -227,8 +224,8 @@ impl MarkdownToHtmlConverter {
     }
 
     /// Returns a collection of elements within the given line
-    fn get_html_element_from_md_line(&self, regex: &Regex, line: &str, section_type: &SectionType, markdown: Vec<&str>) -> Option<Vec<TypeElement>> {
-        let match_list: Vec<String> = get_list_of_regex_matching_content(regex, line, markdown);   
+    fn get_html_element_from_md_line(regex: &Regex, line: &str, section_type: &SectionType, markdown: Vec<&str>) -> Option<Vec<TypeElement>> {
+        let match_list: Vec<String> = get_list_of_regex_matching_content(regex, line, markdown);
         let non_match_sections: Vec<String> = get_list_of_non_matching_content(regex, line);
         
         let mut elements: Vec<TypeElement> = vec![];
@@ -275,7 +272,6 @@ impl MarkdownToHtmlConverter {
         } else {
             get_list_of_regex_matching_content(&self.image_link_finder, line, vec![])
         };
-        log!("link_list: {:?}", link_list);
         let link_names_list: Vec<String> = if !md_is_image {
             link_list.clone().iter().map(|link| {
                 let found_name = self.link_name_finder.find(link).unwrap().as_str();
@@ -289,21 +285,18 @@ impl MarkdownToHtmlConverter {
                 clean_name.clone()
             }).collect::<Vec<String>>()
         };
-        log!("link_names_list: {:?}", link_names_list);
         let link_url_list: Vec<String> = link_list.iter().map(|link| {
             let mut found_url = self.link_url_finder.find(link).unwrap().as_str();
             let mut clean_url = &found_url.replace("(", "").replace(")", "").to_string();
             let url = clean_url.split(' ').nth(0).unwrap(); // get link without title
             url.to_string()
         }).collect::<Vec<String>>();
-        log!("link_url_list: {:?}", link_url_list);
 
         let non_match_sections: Vec<String> = get_list_of_non_matching_content(if !md_is_image {
             &self.link_finder
         } else {
             &self.image_link_finder
         }, line);
-        log!("non_match_sections: {:?}", non_match_sections);
         
         let mut elements: Vec<TypeElement> = vec![];
         if non_match_sections.len() == 0 { // if no non-match sections then entire line is a link            
@@ -326,7 +319,7 @@ impl MarkdownToHtmlConverter {
                     elements.push(TypeElement { section_type: SectionType::String, element: span().child(non_match_section.clone()).into() });
                 }                    
 
-                let element = get_anchor_or_image_element(&link_names_list, &link_url_list, index, md_is_image);
+                let element = MarkdownToHtmlConverter::get_anchor_or_image_element(&link_names_list, &link_url_list, index, md_is_image);
                 if let Some(element) = element {
                     elements.push(TypeElement { section_type: get_anchor_or_image_type(md_is_image), element });
                 }
@@ -339,7 +332,7 @@ impl MarkdownToHtmlConverter {
             }
             // set last anchor or image element if there is one
             if index < link_names_list.len() {
-                let element = get_anchor_or_image_element(&link_names_list, &link_url_list, index, md_is_image);
+                let element = MarkdownToHtmlConverter::get_anchor_or_image_element(&link_names_list, &link_url_list, index, md_is_image);
                 if let Some(element) = element {
                     elements.push(TypeElement { section_type: get_anchor_or_image_type(md_is_image), element });
                 }
@@ -350,32 +343,32 @@ impl MarkdownToHtmlConverter {
         }
         Some(elements)
     }
-}
 
-/// A link may have a title in quotes. This function will remove it
-fn get_anchor_or_image_element(link_names_list: &Vec<String>, link_url_list: &Vec<String>, index: usize, is_image: bool) -> Option<HtmlElement<AnyElement>> {
-    let mut element: Option<HtmlElement<AnyElement>> = None;
-    if let Some(link_name_item) = link_names_list.get(index) {
-        let next_link_name = format!("{}", link_name_item);
+    /// A link may have a title in quotes. This function will remove it
+    fn get_anchor_or_image_element(link_names_list: &Vec<String>, link_url_list: &Vec<String>, index: usize, is_image: bool) -> Option<HtmlElement<AnyElement>> {
+        let mut element: Option<HtmlElement<AnyElement>> = None;
+        if let Some(link_name_item) = link_names_list.get(index) {
+            let next_link_name = format!("{}", link_name_item);
 
-        if let Some(link_url_item) = link_url_list.get(index) {
-            let mut url = link_url_item.split(' '); // e.g. (http://some.com "link title")
-            let next_link_url = format!("{}", url.nth(0).unwrap());
+            if let Some(link_url_item) = link_url_list.get(index) {
+                let mut url = link_url_item.split(' '); // e.g. (http://some.com "link title")
+                let next_link_url = format!("{}", url.nth(0).unwrap());
 
-            if !is_image {
-                element = Some(setup_anchor(&next_link_url, &next_link_name).into());    
+                if !is_image {
+                    element = Some(setup_anchor(&next_link_url, &next_link_name).into());    
+                } else {
+                    element = Some(setup_image(&next_link_url, &next_link_name).into()); 
+                }
             } else {
-                element = Some(setup_image(&next_link_url, &next_link_name).into()); 
-            }
-        } else {
-            warn!("Cannot have a link name without a url");
+                warn!("Cannot have a link name without a url");
+                return None;
+            }            
+        } else if let Some(_link_url_item) = link_url_list.get(index) {
+            warn!("Cannot have a link url without a name");
             return None;
-        }            
-    } else if let Some(_link_url_item) = link_url_list.get(index) {
-        warn!("Cannot have a link url without a name");
-        return None;
+        }
+        element
     }
-    element
 }
 
 /// Returns only the content without the markdown
@@ -384,7 +377,6 @@ fn get_list_of_regex_matching_content(finder: &Regex, line: &str, markdown: Vec<
 
     for found in finder.find_iter(line) {
         let mut found_content = found.as_str().to_string();
-        log!("found_content: {}", found_content);
         for md in &markdown {
             found_content = found_content.replace(md, "");
         }
@@ -573,7 +565,7 @@ mod tests {
             let md = MarkdownToHtmlConverter::new();
 
             let elements = md.get_anchor_or_img_from_md_link(STANDALONE_IMG_LINK, true);
-            log!("elements: {:?}", elements.clone().unwrap().iter().map(|el| el.element.outer_html()).collect::<Vec<String>>());
+            //log!("elements: {:?}", elements.clone().unwrap().iter().map(|el| el.element.outer_html()).collect::<Vec<String>>());
 
             assert!(elements.clone().unwrap().len() == 1);        
             assert!(elements.clone().unwrap().iter().find(|el| el.section_type == SectionType::Image && el.element.outer_html().contains("<img")).is_some());
@@ -610,6 +602,128 @@ mod tests {
                 elements.clone().unwrap().iter().find(|el| el.section_type == SectionType::String && el.element.outer_html().contains("You can find more info here!")).is_some()
                 && elements.clone().unwrap().iter().find(|el| el.section_type == SectionType::String && el.element.outer_html().contains("click that link")).is_some()
             );
+        }
+    }
+
+    mod tests_for_get_html_element_from_md_line {
+        use super::*;
+
+        const STARTS_WITH_ITALIC_EMBEDDED_ITALIC_AND_LASTLY_ITALICBOLD: &str = "*Here* is a super*duper*list of todo ***items***";
+        const MULTIPLE_EMBEDDED_BOLD: &str = "Here's a **list** of **items to first learn**, this is**super**duper **great fun**";
+
+        #[wasm_bindgen_test]
+        fn test_get_html_element_from_md_line_returns_italicbold_element() {
+            let md = MarkdownToHtmlConverter::new();
+
+            let elements = MarkdownToHtmlConverter::get_html_element_from_md_line(
+                &md.italic_bold_finder, 
+                STARTS_WITH_ITALIC_EMBEDDED_ITALIC_AND_LASTLY_ITALICBOLD, 
+                &SectionType::ItalicBold, 
+                vec!["***"]
+            );
+
+            assert!(elements.clone().unwrap().len() == 2);
+            assert!(elements.clone().unwrap().iter().find(
+                |el| el.section_type == SectionType::ItalicBold 
+                    && el.element.outer_html().contains("<i")
+                    && el.element.outer_html().contains("<strong")
+            ).is_some());
+        }
+
+        #[wasm_bindgen_test]
+        fn test_get_html_element_from_md_line_returns_4_bold_elements() {
+            let md = MarkdownToHtmlConverter::new();
+
+            let elements = MarkdownToHtmlConverter::get_html_element_from_md_line(
+                &md.bold_finder, 
+                MULTIPLE_EMBEDDED_BOLD, 
+                &SectionType::Strong, 
+                vec!["**"]
+            );
+
+            assert!(elements.clone().unwrap().len() == 8);
+            assert!(elements.clone().unwrap().iter().filter(
+                |el| el.section_type == SectionType::Strong && el.element.outer_html().contains("<strong")
+            ).collect::<Vec<&TypeElement>>().len() == 4);
+        }
+
+        // #[wasm_bindgen_test]
+        // fn test_get_html_element_from_md_line_returns_2_italic_elements() {
+            // let md = MarkdownToHtmlConverter::new();
+
+            // let elements = MarkdownToHtmlConverter::get_html_element_from_md_line(
+            //     &md.italic_finder, 
+            //     STARTS_WITH_ITALIC_EMBEDDED_ITALIC_AND_LASTLY_ITALICBOLD, 
+            //     &SectionType::Italic, 
+            //     vec!["*"]
+            // );
+
+            // log!("elements: {:?}", elements.clone().unwrap().iter().map(|el| el.element.outer_html()).collect::<Vec<String>>());
+            // assert!(elements.clone().unwrap().len() == 5);
+            // assert!(elements.clone().unwrap().iter().filter(
+            //     |el| el.section_type == SectionType::Italic && el.element.outer_html().contains("<i")
+            // ).collect::<Vec<&TypeElement>>().len() == 2);
+        // }
+    }
+
+    mod tests_for_get_html_element_from_md {
+        use super::*;
+        // h1, h2, italicbold, bold, italic, image link, link
+
+        #[wasm_bindgen_test]
+        fn test_get_html_element_from_md_returns_h1() {
+            let md = MarkdownToHtmlConverter::new();
+
+            let type_elements = vec![TypeElement {
+                section_type: SectionType::String,
+                element: div().child("# Rust is not hard").into()
+            }];
+            let new_type_elements = md.get_html_element_from_md(&md.heading_level_1_finder, &type_elements, TAG_NAME_H1);
+
+            assert!(new_type_elements.len() == 1);
+            assert!(new_type_elements.iter().find(|el| el.section_type == SectionType::H1).unwrap().element.outer_html().contains("</h1>"));
+        }
+
+        #[wasm_bindgen_test]
+        fn test_get_html_element_from_md_returns_h2() {
+            let md = MarkdownToHtmlConverter::new();
+
+            let type_elements = vec![TypeElement {
+                section_type: SectionType::String,
+                element: div().child("## Rust is not hard").into()
+            }];
+            let new_type_elements = md.get_html_element_from_md(&md.heading_level_2_finder, &type_elements, TAG_NAME_H2);
+
+            assert!(new_type_elements.len() == 1);
+            assert!(new_type_elements.iter().find(|el| el.section_type == SectionType::H2).unwrap().element.outer_html().contains("</h2>"));
+        }
+
+        #[wasm_bindgen_test]
+        fn test_get_html_element_from_md_returns_bold() {
+            let md = MarkdownToHtmlConverter::new();
+
+            let type_elements = vec![TypeElement {
+                section_type: SectionType::String,
+                element: div().child("Here's a **list** of **items to first learn**, this is**super**duper **great fun**").into()
+            }];
+            let new_type_elements = md.get_html_element_from_md(&md.bold_finder, &type_elements, TAG_NAME_STRONG);
+
+            assert!(new_type_elements.len() == 8);
+            assert!(new_type_elements.iter().filter(|el| el.section_type == SectionType::Strong).into_iter().collect::<Vec<&TypeElement>>().len() == 4);
+        }
+
+        #[wasm_bindgen_test]
+        fn test_get_html_element_from_md_returns_italic() {
+            let md = MarkdownToHtmlConverter::new();
+
+            let type_elements = vec![TypeElement {
+                section_type: SectionType::String,
+                element: div().child("*Here* is a super*duper*list").into()
+            }];
+            let new_type_elements = md.get_html_element_from_md(&md.italic_finder, &type_elements, TAG_NAME_ITALIC);
+
+            assert!(new_type_elements.len() == 4);
+            assert!(new_type_elements.iter().filter(|el| el.section_type == SectionType::Italic).into_iter().collect::<Vec<&TypeElement>>().len() == 2);
         }
     }
 }
