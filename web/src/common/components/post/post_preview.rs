@@ -7,6 +7,8 @@ use crate::common::utils::markdown_to_html::MarkdownToHtmlConverter;
 #[derive(Clone, Deserialize, Serialize)]
 pub struct PostPreviewParams {
     pub id: i64,
+    /// friendly datetime string
+    pub updated_at: String,
     pub title: String,
     pub content: String
 }
@@ -41,7 +43,8 @@ pub fn PostPreview(post: PostPreviewParams) -> impl IntoView {
         <A href=href>
             <section>
                 <Meta name="description" content=meta_content />
-                <h1>{post.title}</h1>
+                <span>{post.updated_at}</span>
+                <h1 style="margin-top: 0.4em">{post.title}</h1>
                 <div class="preview-content">{html_content}</div>
             </section>
         </A>

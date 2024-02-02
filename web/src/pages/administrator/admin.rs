@@ -27,7 +27,7 @@ pub fn Admin() -> impl IntoView {
     });
     
     view! {
-        <Layout>            
+        <Layout single_column=false>            
             <nav class="home-menu">
                 <h2>Administration</h2>
                 <ul>

@@ -1,9 +1,12 @@
 use crate::common::components::post::post_preview::PostPreviewParams;
+use chrono::Utc;
+use crate::common::utils::date_time::convert_datetime_long_readable;
 
 pub async fn get_fake_post_preview_data() -> Vec<PostPreviewParams> {
     vec![
         PostPreviewParams {
             id: 1,
+            updated_at: convert_datetime_long_readable(Utc::now()),
             title: "Rust is hard to learn".to_string(),
             content: r#"## Let's learn Rust
             *Here* is a super*duper*list of todo ***items***
@@ -17,6 +20,7 @@ pub async fn get_fake_post_preview_data() -> Vec<PostPreviewParams> {
         },
         PostPreviewParams {
             id: 1,
+            updated_at: convert_datetime_long_readable(Utc::now()),
             title: "Rust is not hard to Learn".to_string(),
             content: r"## Rust is not hard
             Here's a **list** of **items to first learn**, this is**super**duper **great fun**
@@ -29,7 +33,8 @@ pub async fn get_fake_post_preview_data() -> Vec<PostPreviewParams> {
         },
         PostPreviewParams {
             id: 1,
-            title: "Rust coding".to_string(),
+            updated_at: convert_datetime_long_readable(Utc::now()),
+            title: "Rust coding".to_string(),            
             content: r#"## Here's some code ***you*** might enjoy
             ![What a wonderful sight](http://sights.com "A sight")
 

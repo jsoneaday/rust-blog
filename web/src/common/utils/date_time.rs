@@ -7,6 +7,10 @@ pub fn convert_timestamp_to_local_datetime(duration_secs: i64) -> DateTime<Local
     date.with_timezone(&Local)
 }
 
-pub fn convert_datetime_readable(datetime: DateTime<Utc>) -> String {
-    datetime.format("%Y-%m-%d %H:%M:%S").to_string()
+pub fn convert_datetime_short_readable(datetime: DateTime<Utc>) -> String {
+    datetime.format("%Y-%m-%d %l:%M %P").to_string()
+}
+
+pub fn convert_datetime_long_readable(datetime: DateTime<Utc>) -> String {
+    datetime.format("%b %d %Y %l:%M %P").to_string()
 }

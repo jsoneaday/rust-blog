@@ -1,6 +1,6 @@
 use leptos::*;
 use leptos::logging::log;
-use crate::common::{api::models::Post, utils::date_time::convert_datetime_readable};
+use crate::common::{api::models::Post, utils::date_time::convert_datetime_short_readable};
 use crate::common::utils::markdown_to_html::MarkdownToHtmlConverter;
 
 #[component]
@@ -16,7 +16,7 @@ pub fn PostDetail(post: Resource<i64, Option<Post>>) -> impl IntoView {
         html
     };
     let updated_at = move || {        
-        convert_datetime_readable(post.get().unwrap().unwrap().updated_at)
+        convert_datetime_short_readable(post.get().unwrap().unwrap().updated_at)
     };
 
     view! {

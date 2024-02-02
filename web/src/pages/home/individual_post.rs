@@ -36,7 +36,7 @@ pub fn IndividualPost() -> impl IntoView {
     });
 
     view! {
-        <Layout>
+        <Layout single_column=true>
             <div class="home-content">
                 <Title text=move || match post_resource() {
                     Some(p) => format!("- {}", p.unwrap().title),

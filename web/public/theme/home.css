@@ -1,6 +1,10 @@
-.home {
+.home-double-col {
   display: grid;
   grid-template-columns: 25% 75%;
+  height: 100vh;
+}
+
+.home-single-col {
   height: 100vh;
 }
 
