@@ -1,5 +1,6 @@
 use leptos::*;
 use leptos_meta::*;
+use leptos_router::A;
 use serde::{Deserialize, Serialize};
 use crate::common::utils::markdown_to_html::MarkdownToHtmlConverter;
 
@@ -13,6 +14,7 @@ pub struct PostPreviewParams {
 #[component]
 pub fn PostPreview(post: PostPreviewParams) -> impl IntoView {    
     let (content, _set_content) = create_signal(post.content);
+    let (href, set_href) = create_signal(format!("/post/{}", post.id));
     let html_content = move || {
         let md_to_html = MarkdownToHtmlConverter::new();
         let mut html = md_to_html.convert_md_to_html(content());
@@ -36,10 +38,12 @@ pub fn PostPreview(post: PostPreviewParams) -> impl IntoView {
      };
 
     view! {
-        <section>
-            <Meta name="description" content=meta_content />
-            <h1>{post.title}</h1>
-            <div class="preview-content">{html_content}</div>
-        </section>
+        <A href=href>
+            <section>
+                <Meta name="description" content=meta_content />
+                <h1>{post.title}</h1>
+                <div class="preview-content">{html_content}</div>
+            </section>
+        </A>
     }
 }

@@ -2,7 +2,10 @@ use actix_web::{web::{Json, Data, Path}, HttpRequest};
 use log::error;
 use crate::{
     routes::{base_model::{OutputId, PagingModel}, stripped_down_error::StrippedDownError, app_state::AppState, auth_helper::check_is_authenticated}, 
-    common::{repository::{administrator::repo::QueryAdministratorFn, base::Repository, post::repo::{InsertPostFn, QueryPostsFn, QueryPostsPreviewFn}}, authentication::auth_service::Authenticator}
+    common::{
+        repository::{administrator::repo::QueryAdministratorFn, base::Repository, post::repo::{InsertPostFn, QueryPostFn, QueryPostsFn, QueryPostsPreviewFn}}, 
+        authentication::auth_service::Authenticator
+    }
 };
 use super::models::{NewPost, PostResponder, convert, PostResponders};
 
@@ -28,6 +31,27 @@ pub async fn get_posts<T: QueryPostsFn + Repository, U: Authenticator>(app_data:
         Ok(posts) => {
             let post_responders = posts.iter().map(|post| convert(post)).collect::<Vec<PostResponder>>();
             Ok(PostResponders(post_responders))
+        },
+        Err(e) => Err(e.into())
+    }
+}
+
+pub async fn get_post<T: QueryPostFn + Repository, U: Authenticator>(app_data: Data<AppState<T, U>>, path: Path<i64>) -> Result<Option<PostResponder>, StrippedDownError> {
+    let post_result = app_data.repo.query_post(path.into_inner()).await;
+
+    match post_result {
+        Ok(opt_post) => {
+            match opt_post {
+                Some(post) => Ok(Some(PostResponder {
+                    id: post.id,
+                    updated_at: post.updated_at,
+                    title: post.title,
+                    message: post.message,
+                    admin_id: post.admin_id
+                })),
+                None => Err(StrippedDownError::InternalError)
+            }
+            
         },
         Err(e) => Err(e.into())
     }

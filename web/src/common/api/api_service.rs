@@ -66,4 +66,20 @@ impl ApiService {
             Err(e) => Err(e)
         }
     }
+
+    pub async fn get_post(&self, post_id: i64) -> Result<Option<Post>, Error> {
+        let post_resp = self.client.get(format!("{}/{}/{}", API_DEV_URL, "post", post_id))
+            .send()
+            .await;
+
+        match post_resp {
+            Ok(res) => {
+                match res.status() {
+                    StatusCode::OK => res.json::<Option<Post>>().await,
+                    _ => Err(res.error_for_status().err().unwrap())
+                }
+            },
+            Err(e) => Err(e)
+        }
+    }
 }

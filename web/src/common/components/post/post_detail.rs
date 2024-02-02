@@ -1,18 +1,24 @@
 use leptos::*;
+use leptos::logging::log;
 use serde::{Deserialize, Serialize};
+use crate::common::{api::models::Post, utils::date_time::convert_datetime_readable};
 
-#[derive(Clone, Deserialize, Serialize)]
-pub struct PostDetailParams {
-    pub updated_at: String,
-    pub title: String,
-    pub content: String
-}
 
 #[component]
-pub fn PostDetail(post: PostDetailParams) -> impl IntoView {
+pub fn PostDetail(post: Resource<i64, Option<Post>>) -> impl IntoView {    
+    let updated_at = move || {
+        log!("PostDetail post: {:?}", post.get());
+        convert_datetime_readable(post.get().unwrap().unwrap().updated_at)
+    };
+
     view! {
-        <div>{post.updated_at}</div>
-        <div>{post.title}</div>
-        <div>{post.content}</div>
+        <Suspense fallback={move || view! { <p>"Loading ..."</p> }}>
+            <div class="post-detail-container">
+                {move || post().map(|p| view! { 
+                    <div>{p.clone().unwrap().title}</div>
+                    <div>{p.unwrap().message}</div>
+                })}
+            </div>
+        </Suspense>
     }
 }

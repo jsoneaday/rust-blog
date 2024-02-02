@@ -21,6 +21,13 @@ mod internal {
             .fetch_all(conn)
             .await
     }
+
+    pub async fn query_post(conn: &Pool<Postgres>, post_id: i64) -> Result<Option<Post>, Error> {
+        query_as::<_, Post>("select * from post where id = $1")
+            .bind(post_id)
+            .fetch_optional(conn)
+            .await
+    }
 }
 
 #[async_trait]
@@ -67,5 +74,17 @@ impl QueryPostsPreviewFn for DbRepo {
             }).collect::<Vec<Post>>()),
             Err(e) => Err(e)
         }
+    }
+}
+
+#[async_trait]
+pub trait QueryPostFn {
+    async fn query_post(&self, post_id: i64) -> Result<Option<Post>, Error>;
+}
+
+#[async_trait]
+impl QueryPostFn for DbRepo {
+    async fn query_post(&self, post_id: i64) -> Result<Option<Post>, Error> {
+        internal::query_post(self.get_conn(), post_id).await
     }
 }

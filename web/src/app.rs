@@ -6,6 +6,7 @@ use crate::common::api::models::LoginResponse;
 use crate::pages::administrator::post::{manage_post::ManagePosts, add_post::AddPost};
 use crate::pages::home::home::Home;
 use crate::pages::administrator::{mail::Mail, admin::Admin};
+use crate::pages::home::individual_post::IndividualPost;
 use crate::pages::page_not_found::PageNotFound;
 
 #[component]
@@ -14,6 +15,7 @@ pub fn App() -> impl IntoView {
     provide_context(api_service);
     let login_resp_signal = create_signal::<Option<LoginResponse>>(None);
     provide_context(login_resp_signal);
+    provide_meta_context();
     
     view! {
         <Router>
@@ -21,6 +23,7 @@ pub fn App() -> impl IntoView {
             <main>
                 <Routes>
                     <Route path="/" view=Home />
+                    <Route path="/post/:post_id" view=IndividualPost />
                     <Route path="/admin" view=Admin>
                         <Route path="/mail" view=Mail />
                         <Route path="/addpost" view=AddPost />
