@@ -14,7 +14,7 @@ pub struct PostPreviewParams {
 #[component]
 pub fn PostPreview(post: PostPreviewParams) -> impl IntoView {    
     let (content, _set_content) = create_signal(post.content);
-    let (href, set_href) = create_signal(format!("/post/{}", post.id));
+    let (href, _set_href) = create_signal(format!("/post/{}", post.id));
     let html_content = move || {
         let md_to_html = MarkdownToHtmlConverter::new();
         let mut html = md_to_html.convert_md_to_html(content());

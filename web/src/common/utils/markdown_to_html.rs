@@ -28,8 +28,8 @@ impl MarkdownToHtmlConverter {
         MarkdownToHtmlConverter {
             heading_level_1_finder: Regex::new(H1_REGEX).unwrap(),
             heading_level_2_finder: Regex::new(H2_REGEX).unwrap(),
-            ordered_list_finder: Regex::new(r"^\d+\.").unwrap(),
-            unordered_list_finder: Regex::new(r"^\-\s").unwrap(),     
+            ordered_list_finder: Regex::new(r"(^\d+\.|\s+\d+\.)").unwrap(),
+            unordered_list_finder: Regex::new(r"(^\-\s|\s+\-\s)").unwrap(),     
             bold_finder: Regex::new(r"\*{2}[\w\s]+\*{2}").unwrap(),      
             italic_bold_finder: Regex::new(r"\*{3}[\w\s]+\*{3}").unwrap(),     
             italic_finder: Regex::new(r"\*{1}[\w\s]+\*{1}").unwrap(),
@@ -60,18 +60,20 @@ impl MarkdownToHtmlConverter {
 
         let mut prior_line_carriage_return = false;
         for md_line in md_lines {                               
-            let line = md_line.trim().to_string();            
+            let line = md_line.clone();            
             let line_str = line.as_str();
             let mut matched_sections: Vec<TypeElement> = vec![];   
                         
             // lists need to be aggregated and then wrapped by single parent
             if self.ordered_list_finder.is_match(line_str) {
+                log!("matched ol");
                 if !ol_started {
                     ol_started = true;
                 }
                 let new_line = self.ordered_list_finder.replace(line_str, "");
                 gathered_ol.push(li().child(new_line.into_owned()).into());
             } else if self.unordered_list_finder.is_match(line_str) {
+                log!("matched ul");
                 if !ul_started {
                     ul_started = true;
                 }
@@ -96,11 +98,15 @@ impl MarkdownToHtmlConverter {
                 let new_line = md_line.clone().replace(r"`", "");
                 gathered_code.push(pre().child(new_line).into());
             } else {
-                if ol_started {                   
+                log!("ol_started: {}", ol_started);
+                log!("ul_started: {}", ul_started);
+                if ol_started {
+                    log!("enter ol");
                     matched_sections.push(TypeElement { section_type: SectionType::Ol, element: ol().child(gathered_ol.clone()).into() });
                     gathered_ol.clear();
                     ol_started = false;
-                } else if ul_started {            
+                } else if ul_started {
+                    log!("enter ul");            
                     matched_sections.push(TypeElement { section_type: SectionType::Ul, element: ul().child(gathered_ul.clone()).into() });
                     gathered_ul.clear();
                     ul_started = false;
@@ -147,6 +153,10 @@ impl MarkdownToHtmlConverter {
             html_lines.push(div().child(ul().child(gathered_ul.clone())).into());
             gathered_ul.clear();
             ul_started = false;
+        } else if ol_started && gathered_ol.len() > 0 {
+            html_lines.push(div().child(ol().child(gathered_ol.clone())).into());
+            gathered_ol.clear();
+            ol_started = false;
         }
 
         html_lines

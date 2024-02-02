@@ -1,8 +1,10 @@
 use leptos::logging::log;
 use leptos::*;
 use leptos_router::*;
+use leptos_meta::Title;
 use crate::common::components::post::post_detail::PostDetail;
 use crate::common::api::api_service::ApiService;
+use crate::common::components::layout::Layout;
 
 #[derive(Params, PartialEq)]
 struct GetPostParams {
@@ -34,6 +36,14 @@ pub fn IndividualPost() -> impl IntoView {
     });
 
     view! {
-        <PostDetail post=post_resource />
+        <Layout>
+            <div class="home-content">
+                <Title text=move || match post_resource() {
+                    Some(p) => format!("- {}", p.unwrap().title),
+                    None => "- Post".to_string()
+                } />
+                <PostDetail post=post_resource />
+            </div>
+        </Layout>
     }
 }
