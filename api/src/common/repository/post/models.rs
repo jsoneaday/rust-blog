@@ -2,7 +2,7 @@ use chrono::{Utc, DateTime};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
-#[derive(FromRow, Serialize, Deserialize, Debug)]
+#[derive(FromRow, Serialize, Deserialize, Debug, Clone)]
 pub struct Post {
     pub id: i64,
     pub created_at: DateTime<Utc>,

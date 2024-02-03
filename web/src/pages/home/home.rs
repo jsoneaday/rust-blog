@@ -30,7 +30,7 @@ pub fn Home() -> impl IntoView {
             <Title text="- Blog Posts" />
             <div class="home-menu">
                 <h1>"Rust Indie Dev"</h1>
-                <h2 style="margin-top: -0.4em">"Adventures in Indie App & Game Dev using only Rust"</h2>
+                <h2 style="margin-top: -0.4em">"Indie App & Game Development with Rust"</h2>
                 <strong>"David Choi"</strong>
                 <b style="margin-top: 0.5em"><i><small>"contact me"</small></i></b>
                 <div style="margin-top: 1em">
