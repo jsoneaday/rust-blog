@@ -2,7 +2,7 @@ use fake::{faker::lorem::en::Sentence, Fake};
 use rust_blog_api::{
     common::{authentication::auth_service::{AuthService, STANDARD_ACCESS_TOKEN_EXPIRATION}, repository::base::{DbRepo, Repository}}, 
     common_test::fixtures::{get_app_data, get_fake_httprequest_with_bearer_token}, 
-    routes::{base_model::PagingModel, post::{models::NewPost, routes::{create_post, get_post, get_posts, get_post_previews, delete_post}}}
+    routes::{base_model::PagingModel, post::{models::{DeletePost, NewPost}, routes::{create_post, get_post, get_posts, get_post_previews, delete_post}}}
     
 };
 use actix_web::web::{Path, Json};
@@ -119,12 +119,11 @@ async fn test_delete_post_does_deletion() {
         title: Sentence(1..2).fake::<String>(),
         message: Sentence(3..5).fake::<String>(),
         admin_id: 1
-    }), req).await;
+    }), req.clone()).await;
     let post_id = created_post_res.unwrap().id;
 
-    let delete_post_res = delete_post(app_data.clone(), Path::from(post_id)).await;
-    assert!(delete_post_res.is_ok());
-    assert!(delete_post_res.unwrap() == ());
+    let delete_post_res = delete_post(app_data.clone(), Json(DeletePost {post_id, admin_id: 1}), req).await;
+    assert!(delete_post_res.error().is_none());
 
     let get_post_res = get_post(app_data, Path::from(post_id)).await;
     assert!(get_post_res.is_ok());

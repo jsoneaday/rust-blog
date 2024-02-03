@@ -6,6 +6,12 @@ use serde::{Deserialize, Serialize};
 use crate::common::repository::post::models::Post;
 
 #[derive(Deserialize)]
+pub struct DeletePost {
+    pub post_id: i64,
+    pub admin_id: i64
+}
+
+#[derive(Deserialize)]
 pub struct NewPost {
     pub title: String,
     pub message: String,

@@ -1,4 +1,4 @@
-use actix_web::{web::{Json, Data, Path}, HttpRequest};
+use actix_web::{web::{Json, Data, Path}, HttpRequest, HttpResponse};
 use log::error;
 use crate::{
     routes::{base_model::{OutputId, PagingModel}, stripped_down_error::StrippedDownError, app_state::AppState, auth_helper::check_is_authenticated}, 
@@ -7,12 +7,12 @@ use crate::{
         authentication::auth_service::Authenticator
     }
 };
-use super::models::{NewPost, PostResponder, convert, PostResponders};
+use super::models::{convert, DeletePost, NewPost, PostResponder, PostResponders};
 
 pub async fn create_post<T: InsertPostFn + QueryAdministratorFn + Repository, U: Authenticator>(app_data: Data<AppState<T, U>>, new_post: Json<NewPost>, req: HttpRequest) -> Result<OutputId, StrippedDownError> {
     let is_authenticated = check_is_authenticated(app_data.clone(), new_post.admin_id, req).await;
     if !is_authenticated {
-        error!("Authentication Failed");
+        error!("create_post error: Authentication Failed");
         return Err(StrippedDownError::AuthenticationFailed);
     }
 
@@ -69,12 +69,19 @@ pub async fn get_post_previews<T: QueryPostsPreviewFn + Repository, U: Authentic
     }
 }
 
-pub async fn delete_post<T: DeletePostFn + Repository, U: Authenticator>(app_data: Data<AppState<T, U>>, path: Path<i64>) -> Result<(), StrippedDownError> {
-    let result = app_data.repo.delete_post(path.into_inner()).await;
+pub async fn delete_post<T: DeletePostFn + QueryAdministratorFn + Repository, U: Authenticator>(app_data: Data<AppState<T, U>>, json: Json<DeletePost>, req: HttpRequest) 
+    -> HttpResponse {
+    let is_authenticated = check_is_authenticated(app_data.clone(), json.admin_id, req).await;
+    if !is_authenticated {
+        error!("delete_post error: Authentication Failed");
+        return HttpResponse::Unauthorized().body("Failed to authorize for deletion");
+    }
+
+    let result = app_data.repo.delete_post(json.post_id).await;
 
     match result {
-        Ok(()) => Ok(()),
-        Err(e) => Err(e.into())
+        Ok(_) => HttpResponse::NoContent().into(),
+        Err(_) => HttpResponse::InternalServerError().body("Failed to delete")
     }
 }
 
@@ -306,14 +313,14 @@ mod tests {
             title,
             message,
             admin_id: 1
-        }), req).await;
+        }), req.clone()).await;
         let created_post_id = created_post.unwrap().id;
 
-        let post_resp = delete_post(app_data, Path::from(created_post_id)).await;
+        let post_resp = delete_post(app_data, Json(DeletePost {
+            post_id: created_post_id,
+            admin_id: 1
+        }), req).await;
 
-        match post_resp {
-            Ok(()) => (),
-            Err(_) => panic!("failed error")
-        };
+        assert!(post_resp.error().is_none());
     }
 }
