@@ -84,6 +84,7 @@ pub async fn run() -> std::io::Result<()> {
             .wrap(
                 Cors::default()
                     .allowed_origin("http://127.0.0.1:8080")
+                    .allowed_origin("http://127.0.0.1:3000")
                     .allowed_methods(vec!["GET", "POST"])
                     .allowed_headers(vec![
                         header::CONTENT_TYPE,

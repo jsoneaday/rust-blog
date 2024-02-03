@@ -100,7 +100,7 @@ impl MarkdownToHtmlConverter {
                     matched_sections.push(TypeElement { section_type: SectionType::Ol, element: ol().child(gathered_ol.clone()).into() });
                     gathered_ol.clear();
                     ol_started = false;
-                } else if ul_started {         
+                } else if ul_started {      
                     matched_sections.push(TypeElement { section_type: SectionType::Ul, element: ul().child(gathered_ul.clone()).into() });
                     gathered_ul.clear();
                     ul_started = false;

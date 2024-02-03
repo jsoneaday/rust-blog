@@ -1,0 +1,11 @@
+.emphome-post-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.emphome-job-list {
+  width: 100%;
+  border-top: solid 1px var(--band-bg-cl);
+}

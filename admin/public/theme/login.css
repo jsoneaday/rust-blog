@@ -1,0 +1,31 @@
+.login-form {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.login-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  color: var(--secondary-font-cl);
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.login-item-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--secondary-font-cl);
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.login-label {
+  margin-bottom: 6px;
+}

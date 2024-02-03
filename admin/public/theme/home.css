@@ -1,0 +1,29 @@
+.home-double-col {
+  display: grid;
+  grid-template-columns: 25% 75%;
+  height: 100vh;
+}
+
+.home-single-col {
+  height: 100vh;
+}
+
+.home-menu {
+  grid-column: 1;
+  align-self: top;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  background-color: var(--panel-bg-cl);
+  padding: 1.5em;
+  padding-top: 0;
+}
+
+.home-content {
+  grid-column: 2;
+  align-self: top;
+  background-color: var(--panel-bg-cl);
+  padding: 1.5em;
+  padding-top: 0;
+}

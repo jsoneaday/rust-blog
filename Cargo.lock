@@ -3139,6 +3139,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "rust-blog-admin"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "console_error_panic_hook",
+ "derive_more",
+ "leptos",
+ "leptos-use",
+ "leptos_meta",
+ "leptos_router",
+ "regex",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "wasm-bindgen-test",
+]
+
+[[package]]
 name = "rust-blog-api"
 version = "0.1.0"
 dependencies = [
