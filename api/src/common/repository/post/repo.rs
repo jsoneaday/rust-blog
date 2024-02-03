@@ -1,9 +1,21 @@
 use async_trait::async_trait;
-use sqlx::{Postgres, Pool, query_as, Error};
+use sqlx::{Postgres, Pool, query, query_as, Error};
 use crate::common::repository::{post::models::Post, base::{DbRepo, ConnGetter, EntityId}};
 
 mod internal {
     use super::*;
+
+    pub async fn delete_post(conn: &Pool<Postgres>, post_id: i64) -> Result<(), Error> {
+        let result = query::<_>("delete from post where id = $1")
+            .bind(post_id)
+            .execute(conn)
+            .await;
+
+        match result {
+            Ok(_) => Ok(()),
+            Err(e) => Err(e)
+        }
+    }
 
     pub async fn insert_post(conn: &Pool<Postgres>, title: String, message: String, admin_id: i64) -> Result<EntityId, Error> {
         query_as::<_, EntityId>("insert into post (title, message, admin_id) values ($1, $2, $3) returning id")
@@ -86,5 +98,17 @@ pub trait QueryPostFn {
 impl QueryPostFn for DbRepo {
     async fn query_post(&self, post_id: i64) -> Result<Option<Post>, Error> {
         internal::query_post(self.get_conn(), post_id).await
+    }
+}
+
+#[async_trait]
+pub trait DeletePostFn {
+    async fn delete_post(&self, post_id: i64) -> Result<(), Error>;
+}
+
+#[async_trait]
+impl DeletePostFn for DbRepo {
+    async fn delete_post(&self, post_id: i64) -> Result<(), Error> {
+        internal::delete_post(self.get_conn(), post_id).await
     }
 }

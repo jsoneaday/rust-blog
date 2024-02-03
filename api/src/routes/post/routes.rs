@@ -3,7 +3,7 @@ use log::error;
 use crate::{
     routes::{base_model::{OutputId, PagingModel}, stripped_down_error::StrippedDownError, app_state::AppState, auth_helper::check_is_authenticated}, 
     common::{
-        repository::{administrator::repo::QueryAdministratorFn, base::Repository, post::repo::{InsertPostFn, QueryPostFn, QueryPostsFn, QueryPostsPreviewFn}}, 
+        repository::{administrator::repo::QueryAdministratorFn, base::Repository, post::repo::{DeletePostFn, InsertPostFn, QueryPostFn, QueryPostsFn, QueryPostsPreviewFn}}, 
         authentication::auth_service::Authenticator
     }
 };
@@ -49,7 +49,7 @@ pub async fn get_post<T: QueryPostFn + Repository, U: Authenticator>(app_data: D
                     message: post.message,
                     admin_id: post.admin_id
                 })),
-                None => Err(StrippedDownError::InternalError)
+                None => Ok(None)
             }
             
         },
@@ -65,6 +65,15 @@ pub async fn get_post_previews<T: QueryPostsPreviewFn + Repository, U: Authentic
             let post_responders = posts.iter().map(|post| convert(post)).collect::<Vec<PostResponder>>();
             Ok(PostResponders(post_responders))
         },
+        Err(e) => Err(e.into())
+    }
+}
+
+pub async fn delete_post<T: DeletePostFn + Repository, U: Authenticator>(app_data: Data<AppState<T, U>>, path: Path<i64>) -> Result<(), StrippedDownError> {
+    let result = app_data.repo.delete_post(path.into_inner()).await;
+
+    match result {
+        Ok(()) => Ok(()),
         Err(e) => Err(e.into())
     }
 }
@@ -142,6 +151,13 @@ mod tests {
                 message: "message".to_string(),
                 admin_id: 1
             }))
+        }
+    }
+
+    #[async_trait]
+    impl DeletePostFn for MockDbRepo {
+        async fn delete_post(&self, _id: i64) -> Result<(), Error> {
+            Ok(())
         }
     }
 
@@ -273,5 +289,31 @@ mod tests {
             },
             Err(_) => panic!("failed error")
         }        
+    }
+
+    #[tokio::test]
+    async fn test_delete_post_deletes_post_successfully() {
+        let repo = MockDbRepo::init().await;
+        let auth_service = AuthService;
+        let app_data = get_app_data(repo, auth_service).await;
+        let user_name = "dave".to_string();
+        let title = "title".to_string();
+        let message = Sentence(1..2).fake::<String>();
+
+        let req = get_fake_httprequest_with_bearer_token(user_name, &app_data.auth_keys.encoding_key, "/v1/post", 1, Some(STANDARD_ACCESS_TOKEN_EXPIRATION));
+
+        let created_post = create_post(app_data.clone(), Json(NewPost {
+            title,
+            message,
+            admin_id: 1
+        }), req).await;
+        let created_post_id = created_post.unwrap().id;
+
+        let post_resp = delete_post(app_data, Path::from(created_post_id)).await;
+
+        match post_resp {
+            Ok(()) => (),
+            Err(_) => panic!("failed error")
+        };
     }
 }
