@@ -17,6 +17,20 @@ mod internal {
         }
     }
 
+    pub async fn update_post(conn: &Pool<Postgres>, post_id: i64, title: String, message: String) -> Result<(), Error> {
+        let result = query::<_>("update post set title = $2, message = $3 where id = $1")
+            .bind(post_id)
+            .bind(title)
+            .bind(message)
+            .execute(conn)
+            .await;
+
+        match result {
+            Ok(_) => Ok(()),
+            Err(e) => Err(e)
+        }
+    }
+
     pub async fn insert_post(conn: &Pool<Postgres>, title: String, message: String, admin_id: i64) -> Result<EntityId, Error> {
         query_as::<_, EntityId>("insert into post (title, message, admin_id) values ($1, $2, $3) returning id")
             .bind(title)
@@ -110,5 +124,17 @@ pub trait DeletePostFn {
 impl DeletePostFn for DbRepo {
     async fn delete_post(&self, post_id: i64) -> Result<(), Error> {
         internal::delete_post(self.get_conn(), post_id).await
+    }
+}
+
+#[async_trait]
+pub trait UpdatePostFn {
+    async fn update_post(&self, post_id: i64, title: String, message: String) -> Result<(), Error>;
+}
+
+#[async_trait]
+impl UpdatePostFn for DbRepo {
+    async fn update_post(&self, post_id: i64, title: String, message: String) -> Result<(), Error> {
+        internal::update_post(self.get_conn(), post_id, title, message).await
     }
 }

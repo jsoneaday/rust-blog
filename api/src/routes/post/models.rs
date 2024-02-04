@@ -11,6 +11,14 @@ pub struct DeletePost {
     pub admin_id: i64
 }
 
+#[derive(Deserialize, Clone)]
+pub struct UpdatePost {
+    pub post_id: i64,
+    pub admin_id: i64,
+    pub title: String,
+    pub message: String
+}
+
 #[derive(Deserialize)]
 pub struct NewPost {
     pub title: String,

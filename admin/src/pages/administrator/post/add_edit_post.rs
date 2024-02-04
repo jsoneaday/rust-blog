@@ -9,8 +9,12 @@ struct AddEditPostParams {
     post_id: Option<i64>
 }
 
+const POST: &str = "Post";
+const EDIT: &str = "Edit";
+
 #[component]
 pub fn AddEditPost() -> impl IntoView {
+    let (submit_btn_label, set_submit_btn_label) = create_signal(POST);
     let add_edit_params = use_params::<AddEditPostParams>();
     let post_id = move || {
         add_edit_params.with(|params| {
@@ -48,6 +52,9 @@ pub fn AddEditPost() -> impl IntoView {
 
     if let Some(id) = post_id() {
         load_editing_post.refetch();
+        set_submit_btn_label(EDIT);
+    } else {
+        set_submit_btn_label(POST);
     }
       
     let submit_save_post = create_action(move |new_post: &NewPost| {
@@ -112,7 +119,7 @@ pub fn AddEditPost() -> impl IntoView {
                     </textarea>
                 </section>
                 <section class="form-section">
-                    <button prop:disabled=disable_post_submit type="submit" class="primary-btn" >"Post"</button>                    
+                    <button prop:disabled=disable_post_submit type="submit" class="primary-btn" >{submit_btn_label}</button>                    
                 </section>
             </form>
         </div>

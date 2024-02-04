@@ -3,11 +3,11 @@ use log::error;
 use crate::{
     routes::{base_model::{OutputId, PagingModel}, stripped_down_error::StrippedDownError, app_state::AppState, auth_helper::check_is_authenticated}, 
     common::{
-        repository::{administrator::repo::QueryAdministratorFn, base::Repository, post::repo::{DeletePostFn, InsertPostFn, QueryPostFn, QueryPostsFn, QueryPostsPreviewFn}}, 
+        repository::{administrator::repo::QueryAdministratorFn, base::Repository, post::repo::{DeletePostFn, InsertPostFn, QueryPostFn, QueryPostsFn, QueryPostsPreviewFn, UpdatePostFn}}, 
         authentication::auth_service::Authenticator
     }
 };
-use super::models::{convert, DeletePost, NewPost, PostResponder, PostResponders};
+use super::models::{convert, DeletePost, UpdatePost, NewPost, PostResponder, PostResponders};
 
 pub async fn create_post<T: InsertPostFn + QueryAdministratorFn + Repository, U: Authenticator>(app_data: Data<AppState<T, U>>, new_post: Json<NewPost>, req: HttpRequest) -> Result<OutputId, StrippedDownError> {
     let is_authenticated = check_is_authenticated(app_data.clone(), new_post.admin_id, req).await;
@@ -82,6 +82,22 @@ pub async fn delete_post<T: DeletePostFn + QueryAdministratorFn + Repository, U:
     match result {
         Ok(_) => HttpResponse::NoContent().into(),
         Err(_) => HttpResponse::InternalServerError().body("Failed to delete")
+    }
+}
+
+pub async fn update_post<T: UpdatePostFn + QueryAdministratorFn + Repository, U: Authenticator>(app_data: Data<AppState<T, U>>, json: Json<UpdatePost>, req: HttpRequest) 
+    -> HttpResponse {
+    let is_authenticated = check_is_authenticated(app_data.clone(), json.admin_id, req).await;
+    if !is_authenticated {
+        error!("update_post error: Authentication Failed");
+        return HttpResponse::Unauthorized().body("Failed to authorize for update");
+    }
+
+    let result = app_data.repo.update_post(json.post_id, json.title.clone(), json.message.clone()).await;
+
+    match result {
+        Ok(_) => HttpResponse::NoContent().into(),
+        Err(_) => HttpResponse::InternalServerError().body("Failed to update")
     }
 }
 
@@ -164,6 +180,13 @@ mod tests {
     #[async_trait]
     impl DeletePostFn for MockDbRepo {
         async fn delete_post(&self, _id: i64) -> Result<(), Error> {
+            Ok(())
+        }
+    }
+
+    #[async_trait]
+    impl UpdatePostFn for MockDbRepo {
+        async fn update_post(&self, _id: i64, _title: String, _message: String) -> Result<(), Error> {
             Ok(())
         }
     }
@@ -319,6 +342,36 @@ mod tests {
         let post_resp = delete_post(app_data, Json(DeletePost {
             post_id: created_post_id,
             admin_id: 1
+        }), req).await;
+
+        assert!(post_resp.error().is_none());
+    }
+
+    #[tokio::test]
+    async fn test_update_post_updates_post_values_correctly() {
+        let repo = MockDbRepo::init().await;
+        let auth_service = AuthService;
+        let app_data = get_app_data(repo, auth_service).await;
+        let user_name = "dave".to_string();
+        let start_title = Sentence(1..2).fake::<String>();
+        let start_message = Sentence(2..4).fake::<String>();
+        let update_title = Sentence(1..2).fake::<String>();
+        let update_message = Sentence(3..4).fake::<String>();
+
+        let req = get_fake_httprequest_with_bearer_token(user_name, &app_data.auth_keys.encoding_key, "/v1/update_post", 1, Some(STANDARD_ACCESS_TOKEN_EXPIRATION));
+
+        let created_post = create_post(app_data.clone(), Json(NewPost {
+            title: start_title,
+            message: start_message,
+            admin_id: 1
+        }), req.clone()).await;
+        let created_post_id = created_post.unwrap().id;
+
+        let post_resp = update_post(app_data, Json(UpdatePost {
+            post_id: created_post_id,
+            admin_id: 1,
+            title: update_title,
+            message: update_message
         }), req).await;
 
         assert!(post_resp.error().is_none());
