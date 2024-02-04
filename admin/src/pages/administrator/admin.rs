@@ -7,7 +7,7 @@ use crate::common::components::authentication::login::Login;
 use crate::common::components::modal::Modal;
 
 const MAIL: &str = "/admin/mail";
-const ADD_POST: &str = "/admin/addpost";
+const ADD_POST: &str = "/admin/add_edit";
 const MNG_POST: &str = "/admin/mngpost";
 
 #[component]
@@ -20,8 +20,10 @@ pub fn Admin() -> impl IntoView {
 
     create_effect(move |_| {
         if let None = login_resp() {
+            log!("login_resp changed: {}", true);
             set_dialog_open(true);
         } else {
+            log!("login_resp changed: {}", false);
             set_dialog_open(false);
         }
     });
@@ -39,7 +41,7 @@ pub fn Admin() -> impl IntoView {
                     <li>
                         <a href={ADD_POST} class=("a-selected", move || current_selected_nav() == ADD_POST ) on:click=move |_| {
                             set_current_selected_nav(ADD_POST.to_string());
-                        }>"Add Post"</a>
+                        }>"Add Edit Post"</a>
                     </li>
                     <li>
                         <a href={MNG_POST} class=("a-selected", move || current_selected_nav() == MNG_POST ) on:click=move |_| {

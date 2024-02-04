@@ -1,16 +1,56 @@
 use leptos::*;
 use leptos::logging::log;
+use leptos_router::{Params, use_params};
 use crate::common::api::models::{LoginResponse, NewPost};
 use crate::common::api::api_service::ApiService;
 
+#[derive(Params, PartialEq)]
+struct AddEditPostParams {
+    post_id: Option<i64>
+}
+
 #[component]
-pub fn AddPost() -> impl IntoView {
+pub fn AddEditPost() -> impl IntoView {
+    let add_edit_params = use_params::<AddEditPostParams>();
+    let post_id = move || {
+        add_edit_params.with(|params| {
+            params
+            .as_ref()
+            .map(|param| param.post_id)
+            .unwrap_or_default()
+        })
+    };
     let (title, set_title) = create_signal("".to_string());
     let (content, set_content) = create_signal("".to_string());
     let api_service = expect_context::<ReadSignal<ApiService>>();
     let (login_resp, _) = expect_context::<(ReadSignal<Option<LoginResponse>>, WriteSignal<Option<LoginResponse>>)>();
-    
-    let submit_post = create_action(move |new_post: &NewPost| {
+
+    let load_editing_post = create_resource(post_id, move |id| async move {
+        if let None = id {
+            return None;
+        }
+        let post_res = api_service.get_untracked().get_post(id.unwrap_or_default()).await;
+        match post_res {
+            Ok(opt_post) => match opt_post {
+                Some(post) => {
+                    set_title(post.title.clone());
+                    set_content(post.message.clone());
+                    Some(post)
+                },
+                None => None
+            },
+            Err(e) => {
+                log!("Error getting post");
+                None
+            }
+        }
+    });
+
+    if let Some(id) = post_id() {
+        load_editing_post.refetch();
+    }
+      
+    let submit_save_post = create_action(move |new_post: &NewPost| {
         let input = new_post.clone();
         async move { 
             match login_resp() {
@@ -39,7 +79,7 @@ pub fn AddPost() -> impl IntoView {
             <h2>"Add Post"</h2>
             <form on:submit=move |ev| {
                 ev.prevent_default();
-                submit_post.dispatch(NewPost { title: title(), message: content(), admin_id: 1 });
+                submit_save_post.dispatch(NewPost { title: title(), message: content(), admin_id: 1 });
             }>
                 <section class="form-section">
                     <label for="title">
@@ -50,7 +90,6 @@ pub fn AddPost() -> impl IntoView {
                         id="title"
                         name="title"
                         on:input=move |ev| {
-                            log!("target value: {}", event_target_value(&ev));
                             set_title(event_target_value(&ev));
                         } 
                         prop:value=title

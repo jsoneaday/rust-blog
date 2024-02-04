@@ -1,7 +1,7 @@
 pub mod pages {
     pub mod administrator {
         pub mod post {
-            pub mod add_post;
+            pub mod add_edit_post;
             pub mod manage_post;
         }
         pub mod admin;
