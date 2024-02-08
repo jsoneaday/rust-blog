@@ -16,6 +16,14 @@ pub struct NewPost {
 }
 
 #[derive(Serialize, Clone)]
+pub struct UpdatePost {
+    pub post_id: i64,
+    pub admin_id: i64,
+    pub title: String,
+    pub message: String    
+}
+
+#[derive(Serialize, Clone)]
 pub struct LoginCredential {
     pub email: String,
     pub password: String

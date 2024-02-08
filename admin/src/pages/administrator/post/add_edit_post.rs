@@ -1,7 +1,7 @@
 use leptos::*;
 use leptos::logging::log;
 use leptos_router::{Params, use_params};
-use crate::common::api::models::{LoginResponse, NewPost};
+use crate::common::api::models::{LoginResponse, NewPost, UpdatePost};
 use crate::common::api::api_service::ApiService;
 
 #[derive(Params, PartialEq)]
@@ -14,7 +14,6 @@ const EDIT: &str = "Edit";
 
 #[component]
 pub fn AddEditPost() -> impl IntoView {
-    let (submit_btn_label, set_submit_btn_label) = create_signal(POST);
     let add_edit_params = use_params::<AddEditPostParams>();
     let post_id = move || {
         add_edit_params.with(|params| {
@@ -29,10 +28,14 @@ pub fn AddEditPost() -> impl IntoView {
     let api_service = expect_context::<ReadSignal<ApiService>>();
     let (login_resp, _) = expect_context::<(ReadSignal<Option<LoginResponse>>, WriteSignal<Option<LoginResponse>>)>();
 
-    let load_editing_post = create_resource(post_id, move |id| async move {
+    _ = create_resource(post_id, move |id| async move {
+        if let None = login_resp() {
+            return None;
+        }
         if let None = id {
             return None;
         }
+        log!("load post data");
         let post_res = api_service.get_untracked().get_post(id.unwrap_or_default()).await;
         match post_res {
             Ok(opt_post) => match opt_post {
@@ -43,21 +46,14 @@ pub fn AddEditPost() -> impl IntoView {
                 },
                 None => None
             },
-            Err(e) => {
+            Err(_) => {
                 log!("Error getting post");
                 None
             }
         }
     });
-
-    if let Some(id) = post_id() {
-        load_editing_post.refetch();
-        set_submit_btn_label(EDIT);
-    } else {
-        set_submit_btn_label(POST);
-    }
-      
-    let submit_save_post = create_action(move |new_post: &NewPost| {
+       
+    let submit_new_post = create_action(move |new_post: &NewPost| {
         let input = new_post.clone();
         async move { 
             match login_resp() {
@@ -76,9 +72,36 @@ pub fn AddEditPost() -> impl IntoView {
         }
     });
 
+    let submit_update_post = create_action(move |update_post: &UpdatePost| {
+        let input = update_post.clone();
+        async move { 
+            match login_resp() {
+                Some(login_result) => {
+                    let result = api_service.get_untracked().update_post(&input, login_result.access_token).await;
+                    match result { 
+                        Ok(_resp) => log!("update_post success"),
+                        Err(e) => log!("update_post failed: {:?}", e)
+                    };  
+                },
+                None => {
+                    // todo: add notification that user must login!
+                    log!("update_post failed: user must login first");
+                }
+            }                      
+        }
+    });
+
     let disable_post_submit = move || match login_resp() {
         Some(_login_result) => false,
         None => true
+    };
+
+    let submit_btn_label = move || {
+        if let Some(_id) = post_id() {
+            EDIT
+        } else {
+            POST
+        }
     };
 
     view! {
@@ -86,7 +109,11 @@ pub fn AddEditPost() -> impl IntoView {
             <h2>"Add Post"</h2>
             <form on:submit=move |ev| {
                 ev.prevent_default();
-                submit_save_post.dispatch(NewPost { title: title(), message: content(), admin_id: 1 });
+                if let None = post_id() {
+                    submit_new_post.dispatch(NewPost { title: title(), message: content(), admin_id: 1 });
+                } else {
+                    submit_update_post.dispatch(UpdatePost { post_id: post_id().unwrap(), admin_id: 1, title: title(), message: content() });
+                }
             }>
                 <section class="form-section">
                     <label for="title">

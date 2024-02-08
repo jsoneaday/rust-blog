@@ -4,7 +4,7 @@ use reqwest::header::HeaderMap;
 use reqwest::{Client, StatusCode};
 use reqwest::Error;
 
-pub const API_DEV_URL: &str = "http://0.0.0.0:4003/v1";
+pub const API_DEV_URL: &str = "https://127.0.0.1:4003/v1";
 
 #[derive(Clone, Debug, Default)]
 pub struct ApiService {

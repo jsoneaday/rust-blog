@@ -12,6 +12,7 @@ pub mod common {
     pub mod utils {
         pub mod markdown_to_html;
         pub mod date_time;
+        pub mod fs_utils;
     }
     pub mod components {
         pub mod layout;

@@ -19,12 +19,12 @@ pub fn Admin() -> impl IntoView {
     let (login_resp, _) = expect_context::<(ReadSignal<Option<LoginResponse>>, WriteSignal<Option<LoginResponse>>)>();
 
     create_effect(move |_| {
-        if let None = login_resp() {
-            log!("login_resp changed: {}", true);
-            set_dialog_open(true);
-        } else {
-            log!("login_resp changed: {}", false);
+        if let Some(login) = login_resp() {
+            log!("logged: {}", login.login_user_id);
             set_dialog_open(false);
+        } else {
+            log!("not logged in");
+            set_dialog_open(true);
         }
     });
     

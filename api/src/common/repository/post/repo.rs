@@ -27,7 +27,10 @@ mod internal {
 
         match result {
             Ok(_) => Ok(()),
-            Err(e) => Err(e)
+            Err(e) => {
+                println!("update_post failed: {:?}", e);
+                Err(e)
+            }
         }
     }
 

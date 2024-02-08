@@ -21,7 +21,7 @@ pub fn App() -> impl IntoView {
     
     view! {
         <Router>
-            <Title formatter=|_text| format!("RustyIndie Admin") />
+            <Title text="RustyIndie Admin" />
             <main>
                 <Routes>
                     <Route path="/admin" view=Admin>

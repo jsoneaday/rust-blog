@@ -45,23 +45,48 @@ pub mod common_test {
 
 use crate::routes::app_state::AppState;
 use std::env;
+use std::fs::File;
+use std::io::BufReader;
 use actix_cors::Cors;
 use actix_web::{HttpServer, App, http::header, middleware::Logger, web};
+use log::error;
+use rustls::{Certificate, PrivateKey, ServerConfig};
+use rustls_pemfile::{certs, pkcs8_private_keys};
 use common::{repository::base::{DbRepo, Repository}, authentication::auth_service::{AuthService, init_auth_keys}};
 use dotenv::dotenv;
-use openssl::ssl::{SslAcceptorBuilder, SslAcceptor, SslMethod, SslFiletype};
 use crate::routes::route_configs::post_configs::post_configs;
 use crate::routes::route_configs::admin_configs::admin_configs;
 
-#[allow(unused)]
-fn ssl_builder() -> SslAcceptorBuilder {
-    let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
-    builder
-        .set_private_key_file("ssl/key.pem", SslFiletype::PEM)
-        .expect("failed to open/read key.pem");
-    builder.set_certificate_chain_file("ssl/cert.pem")
-        .expect("failed to open/read cert.pem");
-    builder
+fn load_rustls_config() -> rustls::ServerConfig {
+    let config = ServerConfig::builder();
+
+    let cert_file = &mut BufReader::new(File::open("ssl/cert.pem").unwrap());
+    let key_file = &mut BufReader::new(File::open("ssl/key.pem").unwrap());
+
+    let cert_chain = certs(cert_file)
+        .unwrap()
+        .into_iter()
+        .map(Certificate)
+        .collect();
+
+    let mut keys: Vec<PrivateKey> = pkcs8_private_keys(key_file)
+        .unwrap()
+        .into_iter()
+        .map(PrivateKey)
+        .collect();
+
+    if keys.is_empty() {
+        error!("could not locate pkcs 8 private keys");
+        std::process::exit(1);
+    }
+
+    config
+        .with_safe_default_cipher_suites()
+        .with_safe_default_kx_groups()
+        .with_safe_default_protocol_versions()
+        .unwrap()
+        .with_no_client_auth()
+        .with_single_cert(cert_chain, keys.remove(0)).unwrap()
 }
 
 pub async fn run() -> std::io::Result<()> {
@@ -100,8 +125,8 @@ pub async fn run() -> std::io::Result<()> {
                     .configure(post_configs)
             )
     })
-    .bind((host, port)).expect("")
-    // .bind_openssl((host, post), ssl_builder())?
+    // .bind((host, port)).expect("")
+    .bind_rustls_021((host, port), load_rustls_config())?
     .run()
     .await
 }

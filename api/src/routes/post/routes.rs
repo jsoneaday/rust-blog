@@ -97,7 +97,10 @@ pub async fn update_post<T: UpdatePostFn + QueryAdministratorFn + Repository, U:
 
     match result {
         Ok(_) => HttpResponse::NoContent().into(),
-        Err(_) => HttpResponse::InternalServerError().body("Failed to update")
+        Err(e) => {
+            error!("update_post failed: {:?}", e);
+            HttpResponse::InternalServerError().body("Failed to update")
+        }
     }
 }
 
