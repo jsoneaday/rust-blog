@@ -11,7 +11,7 @@ pub struct LoginCredential {
     pub password: String
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct LoginResponse {
     pub access_token: String,
     pub login_user_id: i64

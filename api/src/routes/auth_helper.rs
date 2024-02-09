@@ -1,9 +1,7 @@
-use actix_http::body::to_bytes;
 use actix_web::{web::Data, HttpRequest, HttpResponse};
-use jsonwebtoken::DecodingKey;
 use log::{info, error};
-use crate::{common::{repository::{administrator::repo::QueryAdministratorFn, base::Repository}, authentication::auth_service::{Authenticator, decode_token, Claims}}, routes::route_utils::get_header_strings};
-use super::app_state::AppState;
+use crate::{common::{repository::{administrator::repo::QueryAdministratorFn, base::Repository}, authentication::auth_service::Authenticator}, routes::route_utils::get_header_strings};
+use super::{app_state::AppState, authentication::models::LoginResponse};
 
 pub async fn check_is_authenticated<T: QueryAdministratorFn + Repository, U: Authenticator>(
     app_data: Data<AppState<T, U>>,
@@ -33,9 +31,17 @@ pub async fn check_is_authenticated<T: QueryAdministratorFn + Repository, U: Aut
     }
 }
 
-pub async fn get_claims_from_token_body(decoding_key: &DecodingKey, httpresponse: HttpResponse) -> Claims {
+pub async fn get_access_token_from_login_resp_httpresponse(httpresponse: HttpResponse) -> String {
     let (_res, body) = httpresponse.into_parts();
-    let new_token_bytes = to_bytes(body).await.unwrap();
-    let new_token_str = String::from_utf8_lossy(&new_token_bytes);
-    decode_token(&new_token_str, decoding_key)
+    let bytes = actix_http::body::to_bytes(body).await.unwrap();
+    let resp_body = String::from_utf8_lossy(&bytes);
+    let login_resp: Result<LoginResponse, serde_json::Error> = serde_json::from_str(&resp_body);
+    login_resp.unwrap().access_token.to_string()
+}
+
+pub async fn get_access_token_from_str_body_httpresponse(httpresponse: HttpResponse) -> String {    
+    let (_res, body) = httpresponse.into_parts();
+    let bytes = actix_http::body::to_bytes(body).await.unwrap();
+    let resp_body = String::from_utf8_lossy(&bytes);
+    resp_body.to_string()
 }

@@ -232,8 +232,6 @@ mod tests {
             admin_id: 1
         }), req).await;
 
-        println!("created_post {:?}", created_post.as_ref().err());
-
         assert!(created_post.as_ref().is_ok());
         assert!(created_post.unwrap().id == MOCK_ENTITY_ID);
     }
@@ -313,10 +311,7 @@ mod tests {
         match post_resp {
             Ok(post_opt) => {
                 match post_opt {
-                    Some(post) => {
-                        println!("post: {:?}, created id: {}", post, created_post_id);
-                        assert!(post.id == created_post_id);        
-                    },
+                    Some(post) => assert!(post.id == created_post_id),
                     None => panic!("failed None")
                 }
             },

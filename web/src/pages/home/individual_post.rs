@@ -27,10 +27,7 @@ pub fn IndividualPost() -> impl IntoView {
         log!("call post with id: {}", id);
         let result = api_service.get_untracked().get_post(id).await;
         match result {
-            Ok(post) => {
-                log!("post: {:?}", post);
-                post
-            },
+            Ok(post) => post,
             Err(_) => panic!("A post with id {} does not exist", id)
         }
     });

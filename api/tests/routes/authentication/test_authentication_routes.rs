@@ -1,8 +1,8 @@
 use actix_web::web::Json;
 use fake::{faker::internet::en::Username, Fake};
 use rustyindie_api::{
-    common::{repository::base::{DbRepo, Repository}, authentication::auth_service::{AuthService, STANDARD_ACCESS_TOKEN_EXPIRATION}}, 
-    routes::{authentication::{routes::{login, refresh_access_token}, models::{LoginCredential, RefreshToken}}, auth_helper::get_claims_from_token_body, route_utils::get_header_strings}
+    common::{authentication::auth_service::{decode_token, AuthService, STANDARD_ACCESS_TOKEN_EXPIRATION}, repository::base::{DbRepo, Repository}}, 
+    routes::{auth_helper::{get_access_token_from_login_resp_httpresponse, get_access_token_from_str_body_httpresponse}, authentication::{models::{LoginCredential, RefreshToken}, routes::{login, refresh_access_token}}, route_utils::get_header_strings}
 };
 use rustyindie_api::common_test::fixtures::{get_app_data, get_fake_httprequest_with_bearer_token};
 
@@ -29,7 +29,8 @@ async fn test_refresh_access_token_is_valid() {
         old_token
     }), req).await;
 
-    let claims = get_claims_from_token_body(&app_data.auth_keys.decoding_key, httpresponse).await;
+    let token = get_access_token_from_str_body_httpresponse(httpresponse).await;
+    let claims = decode_token(&token, &app_data.auth_keys.decoding_key);
 
     assert!(claims.sub == user_name);
     assert!(claims.exp >= STANDARD_ACCESS_TOKEN_EXPIRATION as usize);
@@ -47,7 +48,8 @@ async fn test_login_logs_in_successfully() {
         password: "123".to_string()
     })).await;
 
-    let claims = get_claims_from_token_body(&app_data.auth_keys.decoding_key, login_resp).await;
+    let token = get_access_token_from_login_resp_httpresponse(login_resp).await;
+    let claims = decode_token(&token, &app_data.auth_keys.decoding_key);
 
     assert!(claims.sub == user_name);
     assert!(claims.exp >= STANDARD_ACCESS_TOKEN_EXPIRATION as usize);

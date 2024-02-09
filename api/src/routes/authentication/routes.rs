@@ -188,8 +188,9 @@ mod tests {
 
         let (res, mut body) = result.into_parts();
         let bytes = body::to_bytes(&mut body).await.ok().unwrap();
-        let token_str = String::from_utf8_lossy(&bytes);
-        let token = decode_token(&token_str, &app_data.auth_keys.decoding_key);
+        let login_response_str = String::from_utf8_lossy(&bytes);
+        let login_response: Result<LoginResponse, serde_json::Error> = serde_json::from_str(&login_response_str);
+        let token = decode_token(&login_response.unwrap().access_token, &app_data.auth_keys.decoding_key);
         assert!(token.exp >= STANDARD_ACCESS_TOKEN_EXPIRATION as usize);
         assert!(token.sub == USERNAME.to_string());
 
