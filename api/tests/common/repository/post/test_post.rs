@@ -1,4 +1,4 @@
-use rust_blog_api::{
+use rustyindie_api::{
     common::{repository::{base::{DbRepo, Repository}, administrator::repo::InsertAdminisratorFn, post::repo::{InsertPostFn, QueryPostsFn}}, authentication::auth_service::AuthService}, 
     common_test::fixtures::get_app_data
 };

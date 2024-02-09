@@ -3,3 +3,4 @@
 /devdb
 .env
 .DS_Store
+/dbdata

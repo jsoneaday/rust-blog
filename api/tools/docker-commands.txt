@@ -1,0 +1,11 @@
+# remove any image
+docker rmi <image name>
+
+# shut down and remove project containers and delete all volumes
+docker compose -p <project name> down -v
+
+# create docker instance from a specific yml file in detached mode and build it first
+docker compose -f <docker-compose yml file name> up -d --build
+
+# pass -p to indicate the project name. Can be used both during up or down
+docker compose -f dev.yml -p rustyindie up -d --build

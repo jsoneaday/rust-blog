@@ -1,10 +1,10 @@
 use actix_web::web::Json;
 use fake::{faker::internet::en::Username, Fake};
-use rust_blog_api::{
+use rustyindie_api::{
     common::{repository::base::{DbRepo, Repository}, authentication::auth_service::{AuthService, STANDARD_ACCESS_TOKEN_EXPIRATION}}, 
     routes::{authentication::{routes::{login, refresh_access_token}, models::{LoginCredential, RefreshToken}}, auth_helper::get_claims_from_token_body, route_utils::get_header_strings}
 };
-use rust_blog_api::common_test::fixtures::{get_app_data, get_fake_httprequest_with_bearer_token};
+use rustyindie_api::common_test::fixtures::{get_app_data, get_fake_httprequest_with_bearer_token};
 
 #[tokio::test]
 async fn test_refresh_access_token_is_valid() {

@@ -2,10 +2,11 @@ version: "3.8"
 
 services:
   server:
-    image: syntaxmakersserver
+    image: rustyindie-api
+    container_name: rustyindie-api-container
     build:
       context: .
-      dockerfile: ./Dockerfile
+      dockerfile: ./prod-dockerfile
     depends_on:
       - db
     environment:
@@ -15,18 +16,19 @@ services:
       HOST: "0.0.0.0"
       POSTGRES_HOST: "db"
       POSTGRES_PORT: 5432
-      POSTGRES_PASSWORD: syntaxmakers
-      POSTGRES_USER: syntaxmakers
-      POSTGRES_DB: syntaxmakers
+      POSTGRES_PASSWORD: rustyindie
+      POSTGRES_USER: rustyindie
+      POSTGRES_DB: rustyindie
     ports:
       - "4002:4002"
   db:
     image: postgres:14-alpine
+    container_name: pg-db-container
     ports:
       - 5433:5432
     environment:
-      POSTGRES_PASSWORD: syntaxmakers
-      POSTGRES_USER: syntaxmakers
-      POSTGRES_DB: syntaxmakers
+      POSTGRES_PASSWORD: rustyindie
+      POSTGRES_USER: rustyindie
+      POSTGRES_DB: rustyindie
     volumes:
       - ./dbdata:/var/lib/postgresql/data

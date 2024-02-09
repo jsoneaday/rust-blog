@@ -3170,86 +3170,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rust-blog-admin"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "console_error_panic_hook",
- "derive_more",
- "leptos",
- "leptos-use",
- "leptos_meta",
- "leptos_router",
- "regex",
- "reqwest",
- "serde",
- "serde_json",
- "wasm-bindgen-test",
-]
-
-[[package]]
-name = "rust-blog-api"
-version = "0.1.0"
-dependencies = [
- "actix-cors",
- "actix-files",
- "actix-http",
- "actix-multipart",
- "actix-web",
- "argon2",
- "async-trait",
- "async_once",
- "chrono",
- "derive_more",
- "dotenv",
- "env_logger",
- "fake",
- "futures",
- "futures-util",
- "jsonwebtoken",
- "lazy_static",
- "log 0.4.20",
- "mockall",
- "multipart",
- "protoc",
- "rand 0.8.5",
- "rand_core 0.6.4",
- "reqwest",
- "ring",
- "rustls",
- "rustls-pemfile",
- "serde",
- "serde_json",
- "serde_repr",
- "sqlx",
- "tokio",
- "tokio-stream",
- "uuid",
-]
-
-[[package]]
-name = "rust-blog-web"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "console_error_panic_hook",
- "derive_more",
- "js-sys",
- "leptos",
- "leptos-use",
- "leptos_meta",
- "leptos_router",
- "regex",
- "reqwest",
- "serde",
- "serde-wasm-bindgen",
- "serde_json",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "wasm-bindgen-test",
-]
-
-[[package]]
 name = "rustc-demangle"
 version = "0.1.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3312,6 +3232,86 @@ checksum = "8b6275d1ee7a1cd780b64aca7726599a1dbc893b1e64144529e55c3c2f745765"
 dependencies = [
  "ring",
  "untrusted",
+]
+
+[[package]]
+name = "rustyindie-admin"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "console_error_panic_hook",
+ "derive_more",
+ "leptos",
+ "leptos-use",
+ "leptos_meta",
+ "leptos_router",
+ "regex",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "wasm-bindgen-test",
+]
+
+[[package]]
+name = "rustyindie-api"
+version = "0.1.0"
+dependencies = [
+ "actix-cors",
+ "actix-files",
+ "actix-http",
+ "actix-multipart",
+ "actix-web",
+ "argon2",
+ "async-trait",
+ "async_once",
+ "chrono",
+ "derive_more",
+ "dotenv",
+ "env_logger",
+ "fake",
+ "futures",
+ "futures-util",
+ "jsonwebtoken",
+ "lazy_static",
+ "log 0.4.20",
+ "mockall",
+ "multipart",
+ "protoc",
+ "rand 0.8.5",
+ "rand_core 0.6.4",
+ "reqwest",
+ "ring",
+ "rustls",
+ "rustls-pemfile",
+ "serde",
+ "serde_json",
+ "serde_repr",
+ "sqlx",
+ "tokio",
+ "tokio-stream",
+ "uuid",
+]
+
+[[package]]
+name = "rustyindie-web"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "console_error_panic_hook",
+ "derive_more",
+ "js-sys",
+ "leptos",
+ "leptos-use",
+ "leptos_meta",
+ "leptos_router",
+ "regex",
+ "reqwest",
+ "serde",
+ "serde-wasm-bindgen",
+ "serde_json",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "wasm-bindgen-test",
 ]
 
 [[package]]

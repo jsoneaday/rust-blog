@@ -1,0 +1,12 @@
+FROM rust:1.75 as builder
+WORKDIR /usr/src/rustyindie-api
+COPY . .
+RUN cargo install --path .
+ 
+FROM ubuntu:22.04
+RUN apt-get update
+RUN apt-get install -y wget
+RUN apt-get install -y build-essential
+COPY --from=builder /usr/src/rustyindie-api /usr/local/bin/rustyindie-api
+WORKDIR /usr/local/bin/rustyindie-api
+ENTRYPOINT [ "./target/debug/rustyindie-api" ]

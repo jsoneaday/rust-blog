@@ -1,5 +1,5 @@
 use fake::{faker::lorem::en::Sentence, Fake};
-use rust_blog_api::{
+use rustyindie_api::{
     common::{authentication::auth_service::{AuthService, STANDARD_ACCESS_TOKEN_EXPIRATION}, repository::base::{DbRepo, Repository}}, 
     common_test::fixtures::{get_app_data, get_fake_httprequest_with_bearer_token}, 
     routes::{base_model::PagingModel, post::{models::{DeletePost, NewPost, UpdatePost}, routes::{create_post, get_post, get_posts, get_post_previews, delete_post, update_post}}}

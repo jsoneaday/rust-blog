@@ -1,9 +1,9 @@
 use fake::Fake;
 use fake::faker::internet::en::Username;
-use rust_blog_api::common::repository::base::{Repository, DbRepo};
-use rust_blog_api::common::authentication::auth_service::{AuthService, Authenticator, STANDARD_ACCESS_TOKEN_EXPIRATION, init_auth_keys, get_token, decode_token};
-use rust_blog_api::common_test::fixtures::{get_app_data, get_fake_httprequest_with_bearer_token};
-use rust_blog_api::routes::route_utils::get_header_strings;
+use rustyindie_api::common::repository::base::{Repository, DbRepo};
+use rustyindie_api::common::authentication::auth_service::{AuthService, Authenticator, STANDARD_ACCESS_TOKEN_EXPIRATION, init_auth_keys, get_token, decode_token};
+use rustyindie_api::common_test::fixtures::{get_app_data, get_fake_httprequest_with_bearer_token};
+use rustyindie_api::routes::route_utils::get_header_strings;
 
 #[tokio::test]
 async fn test_init_auth_keys_does_not_panic() {
