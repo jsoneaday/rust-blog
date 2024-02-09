@@ -12,7 +12,6 @@ pub fn PostDetail(post: Resource<i64, Option<Post>>) -> impl IntoView {
         }).unwrap_or_default();
 
         let html = md_to_html.convert_md_to_html(msg_content);
-        log!("html: {:?}", html.iter().map(|h| h.outer_html()).collect::<String>());
         html
     };
     let updated_at = move || {        

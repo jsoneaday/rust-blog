@@ -1,15 +1,16 @@
 use regex::Regex;
-use leptos::{logging::{log, warn}, HtmlElement, html::{a, code, pre, div, h1, h2, i, img, li, ol, p, span, strong, ul, AnyElement, Img, A}};
+use leptos::{logging::{log, warn}, HtmlElement, html::{a, code, pre, div, h1, h2, h3, i, img, li, ol, p, span, strong, ul, AnyElement, Img, A}};
 
 pub struct MarkdownToHtmlConverter {
     pub heading_level_1_finder: Regex,
     pub heading_level_2_finder: Regex,
+    pub heading_level_3_finder: Regex,
     pub ordered_list_finder: Regex,
     pub unordered_list_finder: Regex,
     pub bold_finder: Regex,
     pub italic_bold_finder: Regex,
     pub italic_finder: Regex,
-    pub code_finder: Regex,
+    pub inline_code_finder: Regex,
     pub starting_code_finder: Regex,
     pub ending_code_finder: Regex,
     /// Regex to find a markdown link
@@ -28,14 +29,15 @@ impl MarkdownToHtmlConverter {
         MarkdownToHtmlConverter {
             heading_level_1_finder: Regex::new(H1_REGEX).unwrap(),
             heading_level_2_finder: Regex::new(H2_REGEX).unwrap(),
+            heading_level_3_finder: Regex::new(H3_REGEX).unwrap(),
             ordered_list_finder: Regex::new(r"(^\d+\.|\s+\d+\.)").unwrap(),
             unordered_list_finder: Regex::new(r"(^\-\s|\s+\-\s)").unwrap(),     
             bold_finder: Regex::new(r"\*{2}[\w\s]+\*{2}").unwrap(),      
             italic_bold_finder: Regex::new(r"\*{3}[\w\s]+\*{3}").unwrap(),     
             italic_finder: Regex::new(r"\*{1}[\w\s]+\*{1}").unwrap(),
-            code_finder: Regex::new(r#"\`[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+\`|\`{2}[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+\`{2}"#).unwrap(),
-            starting_code_finder: Regex::new(STARTING_CODE_REGEX).unwrap(),
-            ending_code_finder: Regex::new(ENDING_CODE_REGEX).unwrap(),
+            inline_code_finder: Regex::new(r#"[\w\s\{\}\(\)<.*>\?\!\/\[\]\.\,\:\;\-\"]*\`[\w\s\{\}\(\)<.*>\?\!\/\[\]\.\,\:\;\-\"]+\`[\w\s\{\}\(\)<.*>\?\!\/\[\]\.\,\:\;\-\"]*"#).unwrap(),
+            starting_code_finder: Regex::new(r#"\`[\w\s\{\}\(\)<.*>\?\!\/\[\]\.\,\:\;\-\"]+|\`{2}[\w\s\{\}\(\)<.*>\?\!\/\[\]\.\,\:\;\-\"]+"#).unwrap(),
+            ending_code_finder: Regex::new(r#"[\w\s\{\}\(\)<.*>\?\!\/\[\]\.\,\:\;\-\"]+\`|[\w\s\{\}\(\)<.*>\?\!\/\[\]\.\,\:\;\-\"]+\`{2}"#).unwrap(),
             link_finder: Regex::new(r#"\[([^\]]+)\]\(([^ )]+?)( "([^"]+)")?\)"#).unwrap(),
             link_name_finder: Regex::new(LINK_NAME_REGEX).unwrap(),
             link_url_finder: Regex::new(LINK_URL_REGEX).unwrap(),
@@ -54,6 +56,8 @@ impl MarkdownToHtmlConverter {
         let mut gathered_ol: Vec<HtmlElement<AnyElement>> = vec![];
         let mut ul_started = false;
         let mut gathered_ul: Vec<HtmlElement<AnyElement>> = vec![];
+
+        let mut is_inline_code = false;
         let mut code_started = false;
         let mut code_ended = false;
         let mut gathered_code: Vec<HtmlElement<AnyElement>> = vec![];
@@ -62,6 +66,7 @@ impl MarkdownToHtmlConverter {
         for md_line in md_lines {                               
             let line = md_line.clone();            
             let line_str = line.as_str();
+            log!("line_str {}", line_str);
             let mut matched_sections: Vec<TypeElement> = vec![];   
                         
             // lists need to be aggregated and then wrapped by single parent
@@ -78,7 +83,15 @@ impl MarkdownToHtmlConverter {
                 
                 let new_line = self.unordered_list_finder.replace(line_str, "");
                 gathered_ul.push(li().child(new_line.into_owned()).into());
-            } // code lines need to be aggregated and then wrapped with single parent
+            } else if self.inline_code_finder.is_match(line_str) {
+                log!("found inline code {}", line_str);
+                if !is_inline_code {
+                    is_inline_code = true;
+                }
+
+                let new_line = md_line.clone().replace(r"`", "");
+                gathered_code.push(pre().child(new_line).into());
+            }
             else if self.starting_code_finder.is_match(line_str) {
                 if !code_started {
                     code_started = true;
@@ -106,7 +119,13 @@ impl MarkdownToHtmlConverter {
                     ul_started = false;
                 }
 
-                if code_started { // gets middle of code section
+                if is_inline_code {
+                    is_inline_code = false;
+
+                    log!("adding inline code to output");
+                    matched_sections.push(TypeElement { section_type: SectionType::Code, element: code().child(gathered_code.clone()).into() });                    
+                    gathered_code.clear();
+                } else if code_started { // gets middle of code section
                     gathered_code.push(pre().child(md_line).into());
                 } else if code_ended {
                     code_started = false;
@@ -118,6 +137,7 @@ impl MarkdownToHtmlConverter {
                     matched_sections.push(TypeElement { section_type: SectionType::String, element: div().child(line.clone()).into() });
                     matched_sections = self.get_html_element_from_md(&self.heading_level_1_finder, &matched_sections, TAG_NAME_H1);
                     matched_sections = self.get_html_element_from_md(&self.heading_level_2_finder, &matched_sections, TAG_NAME_H2);
+                    matched_sections = self.get_html_element_from_md(&self.heading_level_3_finder, &matched_sections, TAG_NAME_H3);
                     matched_sections = self.get_html_element_from_md(&self.italic_bold_finder, &matched_sections, TAG_NAME_ITALIC_BOLD);
                     matched_sections = self.get_html_element_from_md(&self.bold_finder, &matched_sections, TAG_NAME_STRONG);
                     matched_sections = self.get_html_element_from_md(&self.italic_finder, &matched_sections, TAG_NAME_ITALIC);
@@ -176,6 +196,10 @@ impl MarkdownToHtmlConverter {
                 else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_H2 {
                     let new_line = regex.replace(element_inner_text, "");              
                     updated_elements.push(TypeElement { section_type: SectionType::H2, element: h2().child(new_line.into_owned()).into() });
+                } 
+                else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_H3 {
+                    let new_line = regex.replace(element_inner_text, "");              
+                    updated_elements.push(TypeElement { section_type: SectionType::H3, element: h3().child(new_line.into_owned()).into() });
                 } 
                 else if regex.is_match(element_inner_text) && replacement_html == TAG_NAME_ITALIC_BOLD {
                     let elements = MarkdownToHtmlConverter::get_html_element_from_md_line(regex, element_inner_text, &SectionType::ItalicBold, vec!["***"]);
@@ -430,6 +454,7 @@ fn convert_matched_sections_to_html(content: String, url: Option<String>, sectio
         SectionType::Ul => ul().child(content).into(),
         SectionType::H1 => h1().child(content).into(),
         SectionType::H2 => h2().child(content).into(),
+        SectionType::H3 => h3().child(content).into(),
         SectionType::Code => code().child(content).into()
     }
 }
@@ -460,6 +485,7 @@ fn prefix_nbsp_for_whitespace_count(affected_txt: String) -> String {
 
 const TAG_NAME_H1: &str = "h1";
 const TAG_NAME_H2: &str = "h2";
+const TAG_NAME_H3: &str = "h3";
 const TAG_NAME_A: &str = "a";
 const TAG_NAME_IMG: &str = "img";
 const TAG_NAME_STRONG: &str = "strong";
@@ -468,10 +494,9 @@ const TAG_NAME_ITALIC_BOLD: &str = "istrong";
 
 const H1_REGEX: &str = r"^\#{1}\s+";
 const H2_REGEX: &str = r"^\#{2}\s+";
+const H3_REGEX: &str = r"^\#{3}\s+";
 const LINK_NAME_REGEX: &str = r#"\[([^\]]+)\]"#;
 const LINK_URL_REGEX: &str = r#"\(([^ ]+?)( "(.+)")?\)"#;
-const STARTING_CODE_REGEX: &str = r#"\`[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+|\`{2}[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+"#;
-const ENDING_CODE_REGEX: &str = r#"[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+\`|[\w\s\{\}\(\)<.*>\?\/\[\]\.\,\:\;\-\"]+\`{2}"#;
 
 /// Used as a precursor object, before converting to html, while finding matches
 #[derive(Clone)]
@@ -493,6 +518,7 @@ pub enum SectionType {
     Ul,
     H1,
     H2,
+    H3,
     Code
 }
 
