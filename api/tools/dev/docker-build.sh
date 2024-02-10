@@ -1,7 +1,7 @@
 echo "build new images"
 docker compose -f dev.yml -p rustyindie-api up -d --build
 echo "wait for db setup to complete"
-sleep 10
+sleep 8
 
 echo "run sqlx migrations"
 sqlx database create --database-url postgres://rustyindie:rustyindie@localhost:5433/rustyindie

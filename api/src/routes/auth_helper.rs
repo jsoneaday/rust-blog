@@ -11,7 +11,6 @@ pub async fn check_is_authenticated<T: QueryAdministratorFn + Repository, U: Aut
     let admin = app_data.repo.query_administrator(admin_id).await.unwrap().unwrap();
     
     let headers = get_header_strings(req.headers());
-    info!("headers {:?}", headers);
     let is_authenticated_result = app_data.auth_service.is_authenticated(admin.user_name, headers, &app_data.auth_keys.decoding_key).await;
     match is_authenticated_result {
         Ok(result) => match result {
