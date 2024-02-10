@@ -3,3 +3,6 @@
 .DS_Store
 /wasm
 /wasm/id.json
+
+.dev.env
+.prod.env

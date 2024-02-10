@@ -11,7 +11,7 @@ path = "src/main.rs"
 name = "rustyindie-web"
 
 [dependencies]
-chrono = { version = "0.4.31", features = ["serde"] }
+chrono = { version = "0.4.33", features = ["serde"] }
 console_error_panic_hook = "0.1.7"
 derive_more = "0.99.17"
 js-sys = "0.3.68"

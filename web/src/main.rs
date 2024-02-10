@@ -1,4 +1,4 @@
-use rust_blog_web::run;
+use rustyindie_web::run;
 
 pub fn main() {
     run();

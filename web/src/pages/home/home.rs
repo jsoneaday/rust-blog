@@ -6,7 +6,6 @@ use crate::common::components::post::post_preview::PostPreviewParams;
 use crate::common::components::{layout::Layout, post::post_preview::PostPreview};
 use crate::common::api::api_service::ApiService;
 use crate::common::utils::date_time::convert_datetime_long_readable;
-use crate::common::utils::fs_utils::get_file_buffer;
 
 
 #[component]

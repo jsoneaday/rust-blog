@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+  web:
+    image: rustyindie-web
+    environment:
+      SERVER_HOST: rustyindie-web
+    container_name: rustyindie-web-con
+    build:
+      context: .
+      dockerfile: ./dev-dockerfile
+    ports:
+      - 80:80

@@ -1,5 +1,4 @@
 use leptos::*;
-use leptos::logging::log;
 use crate::common::{api::models::Post, utils::date_time::convert_datetime_short_readable};
 use crate::common::utils::markdown_to_html::MarkdownToHtmlConverter;
 
