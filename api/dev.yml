@@ -3,6 +3,7 @@ version: "3.8"
 services:
   db:
     image: postgres:14-alpine
+    container_name: rustyindie-pg-c
     ports:
       - 5433:5432
     environment:
@@ -12,8 +13,8 @@ services:
     volumes:
       - ./dbdata:/var/lib/postgresql/data
   api:
-    image: rustyindie-api
-    container_name: rustyindie-api-container
+    image: rustyindie-api-i
+    container_name: rustyindie-api-c
     build:
       context: .
       dockerfile: ./dev-dockerfile
@@ -22,12 +23,14 @@ services:
     environment:
       RUST_LOG: debug,
       ENV: development
-      PORT: 4002
+      PORT: 4003
       HOST: "0.0.0.0"
       POSTGRES_HOST: "db"
       POSTGRES_PORT: 5432
       POSTGRES_PASSWORD: rustyindie
       POSTGRES_USER: rustyindie
       POSTGRES_DB: rustyindie
+      ALLOWED_WEB_URL: http://127.0.0.1
+      ALLOWED_ADMIN_URL: http://127.0.0.1:3001
     ports:
-      - "4002:4002"
+      - "4003:4003"

@@ -1,5 +1,5 @@
 echo "build new images"
-docker compose -f dev.yml -p rustyindie-api up -d --build
+docker compose -f dev.yml -p rustyindie-api-p up -d --build
 echo "wait for db setup to complete"
 sleep 8
 
