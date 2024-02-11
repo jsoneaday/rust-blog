@@ -6,9 +6,9 @@ use crate::common::components::layout::Layout;
 use crate::common::components::authentication::login::Login;
 use crate::common::components::modal::Modal;
 
-const MAIL: &str = "/admin/mail";
-const ADD_POST: &str = "/admin/add_edit";
-const MNG_POST: &str = "/admin/mngpost";
+const MAIL: &str = "/mail";
+const ADD_POST: &str = "/add_edit";
+const MNG_POST: &str = "/mngpost";
 
 #[component]
 pub fn Admin() -> impl IntoView {

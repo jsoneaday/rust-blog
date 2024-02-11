@@ -1,19 +1,35 @@
 FROM rustlang/rust:nightly-alpine as builder
 WORKDIR /usr/src/rustyindie-web
-COPY . .
+COPY ./web .
+
 RUN apk add musl-dev
 RUN rustup target add wasm32-unknown-unknown
 RUN cargo install wasm-bindgen-cli
 RUN cargo install trunk
+
+# first setup web build
 RUN trunk build --release
- 
+
+# next setup admin build
+WORKDIR /usr/src/rustyindie-admin
+COPY ./admin .
+RUN trunk build --release
+
+
 FROM ubuntu:22.04
+# setup web app
 COPY --from=builder /usr/src/rustyindie-web/dist /usr/local/bin/rustyindie-web/dist
 WORKDIR /usr/local/bin/rustyindie-web/dist
 
+# setup admin app
+COPY --from=builder /usr/src/rustyindie-admin/dist /usr/local/bin/rustyindie-admin/dist
+WORKDIR /usr/local/bin/rustyindie-admin/dist
+
+# setup nginx
 RUN apt-get update && apt-get install -y nginx
 COPY default.conf /etc/nginx/conf.d/nginx.conf
-
 EXPOSE 80 
+EXPOSE 3001
+# kick off nginx
 STOPSIGNAL SIGTERM
 CMD ["nginx", "-g", "daemon off;"]

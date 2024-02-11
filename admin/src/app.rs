@@ -24,7 +24,7 @@ pub fn App() -> impl IntoView {
             <Title text="RustyIndie Admin" />
             <main>
                 <Routes>
-                    <Route path="/admin" view=Admin>
+                    <Route path="/" view=Admin>
                         <Route path="/mail" view=Mail />
                         <Route path="/add_edit" view=AddEditPost />
                         <Route path="/add_edit/:post_id" view=AddEditPost />
