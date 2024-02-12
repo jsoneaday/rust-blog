@@ -3,7 +3,7 @@ use leptos::*;
 use leptos_router::A;
 use leptos_meta::*;
 use rustyindie_common::components::post::post_preview::PostPreviewParams;
-use rustyindie_common::components::{layout::Layout, post::post_preview::PostPreview};
+use rustyindie_common::components::{layout::Layout, post::post_preview::PostPreview, post::list_post_previews::ListPostPreviews};
 use rustyindie_common::api::api_service::ApiService;
 use rustyindie_common::utils::date_time::convert_datetime_long_readable;
 
@@ -40,30 +40,7 @@ pub fn Home() -> impl IntoView {
                     </A>
                 </div>                
             </div>
-            <div class="home-content">
-                <ul>
-                    <For
-                        each=move || match posts() {
-                            None => vec![],
-                            Some(data) => data
-                        }
-                        key=|post| post.id
-                        children=move |post| {
-                            view! {
-                                <div style="margin-bottom: 6em">
-                                    <div></div>
-                                    <PostPreview post=PostPreviewParams {
-                                        id: post.id,
-                                        updated_at: convert_datetime_long_readable(post.updated_at),
-                                        title: post.title.to_string(),
-                                        content: post.message.to_string()
-                                    } />
-                                </div>
-                            }
-                        }
-                    />
-                </ul>
-            </div>
+            <ListPostPreviews posts=posts editable=false />
         </Layout>
     }
 }

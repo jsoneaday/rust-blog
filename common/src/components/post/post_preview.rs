@@ -10,13 +10,20 @@ pub struct PostPreviewParams {
     /// friendly datetime string
     pub updated_at: String,
     pub title: String,
-    pub content: String
+    pub content: String,
+    pub editable: bool
 }
 
 #[component]
 pub fn PostPreview(post: PostPreviewParams) -> impl IntoView {    
     let (content, _set_content) = create_signal(post.content);
-    let (href, _set_href) = create_signal(format!("/post/{}", post.id));
+    let (href, _set_href) = create_signal(
+        if post.editable {
+            format!("/add_edit/{}", post.id)
+        } else {
+            format!("/post/{}", post.id)
+        }
+    );
     let html_content = move || {
         let md_to_html = MarkdownToHtmlConverter::new();
         let mut html = md_to_html.convert_md_to_html(content());

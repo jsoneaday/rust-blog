@@ -45,7 +45,12 @@ impl ApiService {
             .await;
 
         match post_resp {
-            Ok(resp) => resp.json::<()>().await,
+            Ok(resp) => {
+                match resp.status() {
+                    StatusCode::NO_CONTENT => Ok(()),
+                    _ => Err(resp.error_for_status().err().unwrap())
+                }
+            },
             Err(e) => Err(e)
         }
     }

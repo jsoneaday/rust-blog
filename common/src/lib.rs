@@ -17,5 +17,6 @@ pub mod components {
     pub mod post {
         pub mod post_detail;
         pub mod post_preview;
+        pub mod list_post_previews;
     }
 }

@@ -19,7 +19,6 @@ pub fn Admin() -> impl IntoView {
 
     create_effect(move |_| {
         if let Some(login) = login_resp() {
-            log!("logged: {}", login.login_user_id);
             set_dialog_open(false);
         } else {
             log!("not logged in");
