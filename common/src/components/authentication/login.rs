@@ -1,7 +1,7 @@
 use leptos::*;
 use leptos::logging::log;
-use rustyindie_common::api::api_service::ApiService;
-use rustyindie_common::api::models::{LoginCredential, LoginResponse};
+use crate::api::api_service::ApiService;
+use crate::api::models::{LoginCredential, LoginResponse};
 
 #[component]
 pub fn Login() -> impl IntoView {

@@ -2,8 +2,8 @@ use leptos::logging::log;
 use leptos::*;
 use leptos_router::A;
 use leptos_meta::*;
-use crate::common::components::post::post_preview::PostPreviewParams;
-use crate::common::components::{layout::Layout, post::post_preview::PostPreview};
+use rustyindie_common::components::post::post_preview::PostPreviewParams;
+use rustyindie_common::components::{layout::Layout, post::post_preview::PostPreview};
 use rustyindie_common::api::api_service::ApiService;
 use rustyindie_common::utils::date_time::convert_datetime_long_readable;
 

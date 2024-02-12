@@ -2,9 +2,9 @@ use leptos::*;
 use leptos::logging::log;
 use leptos_router::*;
 use rustyindie_common::api::models::LoginResponse;
-use crate::common::components::layout::Layout;
-use crate::common::components::authentication::login::Login;
-use crate::common::components::modal::Modal;
+use rustyindie_common::components::layout::Layout;
+use rustyindie_common::components::authentication::login::Login;
+use rustyindie_common::components::modal::Modal;
 
 const MAIL: &str = "/mail";
 const ADD_POST: &str = "/add_edit";
@@ -13,7 +13,6 @@ const MNG_POST: &str = "/mngpost";
 #[component]
 pub fn Admin() -> impl IntoView {
     let location = use_location();
-    log!("pathname: {}", location.pathname.get_untracked());
     let (current_selected_nav, set_current_selected_nav) = create_signal(location.pathname.get_untracked());
     let (dialog_open, set_dialog_open) = create_signal(false);    
     let (login_resp, _) = expect_context::<(ReadSignal<Option<LoginResponse>>, WriteSignal<Option<LoginResponse>>)>();

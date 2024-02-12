@@ -3,9 +3,10 @@ use leptos_meta::*;
 use leptos_router::*;
 use rustyindie_common::api::api_service::ApiService;
 use rustyindie_common::api::models::LoginResponse;
+use rustyindie_common::components::page_not_found::PageNotFound;
 use crate::pages::home::home::Home;
 use crate::pages::home::individual_post::IndividualPost;
-use crate::pages::page_not_found::PageNotFound;
+
 
 #[component]
 pub fn App() -> impl IntoView {

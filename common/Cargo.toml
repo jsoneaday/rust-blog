@@ -7,6 +7,9 @@ edition = "2021"
 chrono = { version = "0.4.33", features = ["serde"] }
 derive_more = "0.99.17"
 leptos = { version = "0.6.5", features = ["csr", "nightly"] }
+leptos_meta = { version = "0.6.5", features = ["csr", "nightly"] }
+leptos_router = { version = "0.6.5", features = ["csr", "nightly"] }
+leptos-use = "0.10.1"
 regex = "1.10.2"
 reqwest = { version = "0.11.23", features = ["json"] }
 serde = { version = "1.0.195", features = ["derive"] }

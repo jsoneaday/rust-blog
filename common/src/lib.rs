@@ -7,3 +7,15 @@ pub mod utils {
     pub mod fs_utils;
     pub mod markdown_to_html;
 }
+pub mod components {
+    pub mod layout;
+    pub mod modal;
+    pub mod page_not_found;
+    pub mod authentication {
+        pub mod login;
+    }
+    pub mod post {
+        pub mod post_detail;
+        pub mod post_preview;
+    }
+}

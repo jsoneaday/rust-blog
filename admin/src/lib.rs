@@ -7,23 +7,6 @@ pub mod pages {
         pub mod admin;
         pub mod mail;        
     }
-    pub mod page_not_found;
-}
-pub mod common {
-    pub mod testing_utils {
-        pub mod fake_data;
-    }
-    pub mod components {
-        pub mod layout;
-        pub mod post {
-            pub mod post_preview;
-            pub mod post_detail;
-        }        
-        pub mod authentication {
-            pub mod login;
-        }
-        pub mod modal;
-    }
 }
 pub mod app;
 
