@@ -14,8 +14,7 @@ pub fn ListPostPreviews(posts: Resource<i32, Vec<Post>>, editable: bool) -> impl
                     key=|post| post.id
                     children=move |post| {
                         view! {
-                            <div style="margin-bottom: 6em">
-                                <div></div>
+                            <li style="margin-bottom: 6em">
                                 <PostPreview post=PostPreviewParams {
                                     id: post.id,
                                     updated_at: convert_datetime_long_readable(post.updated_at),
@@ -23,7 +22,7 @@ pub fn ListPostPreviews(posts: Resource<i32, Vec<Post>>, editable: bool) -> impl
                                     content: post.message.to_string(),
                                     editable
                                 } />
-                            </div>
+                            </li>
                         }
                     }
                 />
