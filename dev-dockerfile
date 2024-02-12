@@ -1,4 +1,6 @@
 FROM rustlang/rust:nightly-alpine as builder
+WORKDIR /usr/src/common
+COPY ./common .
 WORKDIR /usr/src/rustyindie-web
 COPY ./web .
 

@@ -4,8 +4,8 @@ use leptos_router::A;
 use leptos_meta::*;
 use crate::common::components::post::post_preview::PostPreviewParams;
 use crate::common::components::{layout::Layout, post::post_preview::PostPreview};
-use crate::common::api::api_service::ApiService;
-use crate::common::utils::date_time::convert_datetime_long_readable;
+use rustyindie_common::api::api_service::ApiService;
+use rustyindie_common::utils::date_time::convert_datetime_long_readable;
 
 
 #[component]

@@ -2,7 +2,7 @@ use leptos::*;
 use leptos_meta::*;
 use leptos_router::A;
 use serde::{Deserialize, Serialize};
-use crate::common::utils::markdown_to_html::MarkdownToHtmlConverter;
+use rustyindie_common::utils::markdown_to_html::MarkdownToHtmlConverter;
 
 #[derive(Clone, Deserialize, Serialize)]
 pub struct PostPreviewParams {

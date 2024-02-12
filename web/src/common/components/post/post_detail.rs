@@ -1,6 +1,6 @@
 use leptos::*;
-use crate::common::{api::models::Post, utils::date_time::convert_datetime_short_readable};
-use crate::common::utils::markdown_to_html::MarkdownToHtmlConverter;
+use rustyindie_common::{api::models::Post, utils::date_time::convert_datetime_short_readable};
+use rustyindie_common::utils::markdown_to_html::MarkdownToHtmlConverter;
 
 #[component]
 pub fn PostDetail(post: Resource<i64, Option<Post>>) -> impl IntoView {

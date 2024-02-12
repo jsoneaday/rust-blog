@@ -13,10 +13,6 @@ pub mod common {
     pub mod testing_utils {
         pub mod fake_data;
     }
-    pub mod utils {
-        pub mod markdown_to_html;
-        pub mod date_time;
-    }
     pub mod components {
         pub mod layout;
         pub mod post {
@@ -27,10 +23,6 @@ pub mod common {
             pub mod login;
         }
         pub mod modal;
-    }
-    pub mod api {
-        pub mod api_service;
-        pub mod models;
     }
 }
 pub mod app;

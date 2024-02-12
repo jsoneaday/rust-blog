@@ -1,6 +1,6 @@
 use crate::common::components::post::post_preview::PostPreviewParams;
 use chrono::Utc;
-use crate::common::utils::date_time::convert_datetime_long_readable;
+use rustyindie_common::utils::date_time::convert_datetime_long_readable;
 
 pub async fn get_fake_post_preview_data() -> Vec<PostPreviewParams> {
     vec![

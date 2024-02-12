@@ -1,7 +1,7 @@
 use leptos::*;
 use leptos::logging::log;
 use leptos_router::*;
-use crate::common::api::models::LoginResponse;
+use rustyindie_common::api::models::LoginResponse;
 use crate::common::components::layout::Layout;
 use crate::common::components::authentication::login::Login;
 use crate::common::components::modal::Modal;

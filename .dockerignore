@@ -1,0 +1,6 @@
+target
+admin/target
+admin/dist
+web/target
+web/dist
+web/wasm

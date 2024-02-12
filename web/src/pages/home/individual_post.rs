@@ -3,7 +3,7 @@ use leptos::*;
 use leptos_router::*;
 use leptos_meta::Title;
 use crate::common::components::post::post_detail::PostDetail;
-use crate::common::api::api_service::ApiService;
+use rustyindie_common::api::api_service::ApiService;
 use crate::common::components::layout::Layout;
 
 #[derive(Params, PartialEq)]

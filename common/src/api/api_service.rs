@@ -1,4 +1,4 @@
-use super::models::{LoginCredential, LoginResponse, Post};
+use super::models::{LoginCredential, LoginResponse, UpdatePost, Post};
 use super::models::{OutputId, NewPost};
 use reqwest::header::HeaderMap;
 use reqwest::{Client, StatusCode};
@@ -30,6 +30,22 @@ impl ApiService {
 
         match post_resp {
             Ok(output_id) => output_id.json::<OutputId>().await,
+            Err(e) => Err(e)
+        }
+    }
+
+    pub async fn update_post(&self, update_post: &UpdatePost, token: String) -> Result<(), Error> {
+        let mut headers = HeaderMap::new();
+        headers.insert("Authorization", format!("Bearer {}", token).parse().unwrap());
+
+        let post_resp = self.client.post(format!("{}/{}", API_DEV_URL, "update_post"))
+            .headers(headers)
+            .json(update_post)
+            .send()
+            .await;
+
+        match post_resp {
+            Ok(resp) => resp.json::<()>().await,
             Err(e) => Err(e)
         }
     }

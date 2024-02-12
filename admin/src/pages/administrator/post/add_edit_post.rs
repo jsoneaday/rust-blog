@@ -1,8 +1,8 @@
 use leptos::*;
 use leptos::logging::log;
 use leptos_router::{Params, use_params};
-use crate::common::api::models::{LoginResponse, NewPost, UpdatePost};
-use crate::common::api::api_service::ApiService;
+use rustyindie_common::api::models::{LoginResponse, NewPost, UpdatePost};
+use rustyindie_common::api::api_service::ApiService;
 
 #[derive(Params, PartialEq)]
 struct AddEditPostParams {

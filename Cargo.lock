@@ -3247,6 +3247,7 @@ dependencies = [
  "leptos_router",
  "regex",
  "reqwest",
+ "rustyindie-common",
  "serde",
  "serde_json",
  "wasm-bindgen-test",
@@ -3293,6 +3294,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "rustyindie-common"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "derive_more",
+ "leptos",
+ "regex",
+ "reqwest",
+ "serde",
+]
+
+[[package]]
 name = "rustyindie-web"
 version = "0.1.0"
 dependencies = [
@@ -3306,6 +3319,7 @@ dependencies = [
  "leptos_router",
  "regex",
  "reqwest",
+ "rustyindie-common",
  "serde",
  "serde-wasm-bindgen",
  "serde_json",
