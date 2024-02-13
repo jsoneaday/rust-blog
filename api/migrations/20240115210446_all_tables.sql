@@ -26,5 +26,5 @@ create table mail (
     "updated_at" timestamptz(3) not null default current_timestamp,
     "from" varchar(150) not null,
     "subject" varchar(250) not null,
-    "message" text not null,
+    "message" text not null
 );

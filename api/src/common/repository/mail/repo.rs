@@ -23,24 +23,24 @@ mod internal {
 }
 
 #[async_trait]
-pub trait QueryLatestMail {
+pub trait QueryLatestMailFn {
     async fn query_latest_mail(&self, page_size: i32, last_offset: i64) -> Result<Vec<Mail>, Error>;
 }
 
 #[async_trait]
-impl QueryLatestMail for DbRepo {
+impl QueryLatestMailFn for DbRepo {
     async fn query_latest_mail(&self, page_size: i32, last_offset: i64) -> Result<Vec<Mail>, Error> {
         internal::query_latest_mail(self.get_conn(), page_size, last_offset).await
     }
 }
 
 #[async_trait]
-pub trait QueryMail {
+pub trait QueryMailFn {
     async fn query_mail(&self, mail_id: i64) -> Result<Option<Mail>, Error>;
 }
 
 #[async_trait]
-impl QueryMail for DbRepo {
+impl QueryMailFn for DbRepo {
     async fn query_mail(&self, mail_id: i64) -> Result<Option<Mail>, Error> {
         internal::query_mail(self.get_conn(), mail_id).await
     }

@@ -9,6 +9,9 @@ pub mod common {
         pub mod post {
             pub mod test_post;
         }
+        pub mod mail {
+            pub mod test_mail;
+        }
     }    
 }
 pub mod routes {
@@ -17,5 +20,8 @@ pub mod routes {
     }
     pub mod post {
         pub mod test_post_routes;
+    }
+    pub mod mail {
+        pub mod test_mail_routes;
     }
 }

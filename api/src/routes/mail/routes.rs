@@ -1,9 +1,9 @@
 use actix_web::web::{Data, Path};
-use crate::{common::{authentication::auth_service::Authenticator, repository::{base::Repository, mail::repo::{QueryLatestMail, QueryMail}}}, routes::{app_state::AppState, base_model::PagingModel, stripped_down_error::StrippedDownError}};
+use crate::{common::{authentication::auth_service::Authenticator, repository::{base::Repository, mail::repo::{QueryLatestMailFn, QueryMailFn}}}, routes::{app_state::AppState, base_model::PagingModel, stripped_down_error::StrippedDownError}};
 use super::models::{convert, MailResponder, MailResponders};
 
 
-pub async fn get_latest_mail<T: QueryLatestMail + Repository, U: Authenticator>(app_data: Data<AppState<T, U>>, path: Path<PagingModel>) -> Result<MailResponders, StrippedDownError> {
+pub async fn get_latest_mail<T: QueryLatestMailFn + Repository, U: Authenticator>(app_data: Data<AppState<T, U>>, path: Path<PagingModel>) -> Result<MailResponders, StrippedDownError> {
     let result = app_data.repo.query_latest_mail(path.page_size, path.last_offset).await;
 
     match result {
@@ -15,7 +15,7 @@ pub async fn get_latest_mail<T: QueryLatestMail + Repository, U: Authenticator>(
     }
 }
 
-pub async fn get_mail<T: QueryMail + Repository, U: Authenticator>(app_data: Data<AppState<T, U>>, path: Path<i64>) -> Result<Option<MailResponder>, StrippedDownError> {
+pub async fn get_mail<T: QueryMailFn + Repository, U: Authenticator>(app_data: Data<AppState<T, U>>, path: Path<i64>) -> Result<Option<MailResponder>, StrippedDownError> {
     let post_result = app_data.repo.query_mail(path.into_inner()).await;
 
     match post_result {
@@ -59,7 +59,7 @@ mod tests {
     }
 
     #[async_trait]
-    impl QueryLatestMail for MockDbRepo {
+    impl QueryLatestMailFn for MockDbRepo {
         async fn query_latest_mail(&self, _page_size: i32, _last_offset: i64) -> Result<Vec<Mail>, Error> {
             Ok(vec![
                 Mail {
@@ -75,7 +75,7 @@ mod tests {
     }
 
     #[async_trait]
-    impl QueryMail for MockDbRepo {
+    impl QueryMailFn for MockDbRepo {
         async fn query_mail(&self, _mail_id: i64) -> Result<Option<Mail>, Error> {
             Ok(Some(
                 Mail {
