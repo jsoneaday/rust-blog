@@ -66,7 +66,6 @@ impl MarkdownToHtmlConverter {
         for md_line in md_lines {                               
             let line = md_line.clone();            
             let line_str = line.as_str();
-            log!("line_str {}", line_str);
             let mut matched_sections: Vec<TypeElement> = vec![];   
                         
             // lists need to be aggregated and then wrapped by single parent
@@ -84,7 +83,6 @@ impl MarkdownToHtmlConverter {
                 let new_line = self.unordered_list_finder.replace(line_str, "");
                 gathered_ul.push(li().child(new_line.into_owned()).into());
             } else if self.inline_code_finder.is_match(line_str) {
-                log!("found inline code {}", line_str);
                 if !is_inline_code {
                     is_inline_code = true;
                 }
@@ -122,7 +120,6 @@ impl MarkdownToHtmlConverter {
                 if is_inline_code {
                     is_inline_code = false;
 
-                    log!("adding inline code to output");
                     matched_sections.push(TypeElement { section_type: SectionType::Code, element: code().child(gathered_code.clone()).into() });                    
                     gathered_code.clear();
                 } else if code_started { // gets middle of code section

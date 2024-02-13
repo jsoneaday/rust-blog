@@ -35,7 +35,7 @@ pub fn AddEditPost() -> impl IntoView {
         if let None = id {
             return None;
         }
-        log!("load post data");
+        
         let post_res = api_service.get_untracked().get_post(id.unwrap_or_default()).await;
         match post_res {
             Ok(opt_post) => match opt_post {

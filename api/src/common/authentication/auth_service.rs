@@ -4,7 +4,6 @@ use ring::signature::{Ed25519KeyPair, KeyPair};
 use serde::{Deserialize, Serialize};
 use async_trait::async_trait;
 use derive_more::Display;
-use log::info;
 
 pub const STANDARD_REFRESH_TOKEN_EXPIRATION: i64 = 60 * 60 * 24 * 30;
 pub const STANDARD_ACCESS_TOKEN_EXPIRATION: i64 = 60 * 10; // todo: switch to 2 min once testing complete
@@ -80,8 +79,7 @@ impl Authenticator for AuthService {
             if header_name.to_lowercase() == "authorization" {
                 let bearer_items: Vec<&str> = header_val.split(' ').collect();
                 let claims = decode_token(bearer_items.get(1).unwrap(), decoding_key);
-                info!("claims {:?}", claims);
-                info!("checking against user_name {}", user_name);
+                
                 if claims.sub == user_name {
                     if claims.exp >= (Utc::now().timestamp() as usize) {
                         result = Ok(true);

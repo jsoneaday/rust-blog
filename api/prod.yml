@@ -1,34 +1,22 @@
 version: "3.8"
 
 services:
-  server:
-    image: rustyindie-api
-    container_name: rustyindie-api-container
-    build:
-      context: .
-      dockerfile: ./prod-dockerfile
-    depends_on:
-      - db
-    environment:
-      RUST_LOG: debug,
-      ENV: development
-      PORT: 4002
-      HOST: "0.0.0.0"
-      POSTGRES_HOST: "db"
-      POSTGRES_PORT: 5432
-      POSTGRES_PASSWORD: rustyindie
-      POSTGRES_USER: rustyindie
-      POSTGRES_DB: rustyindie
-    ports:
-      - "4002:4002"
   db:
     image: postgres:14-alpine
-    container_name: pg-db-container
+    container_name: rustyindie-pg-c
     ports:
       - 5433:5432
-    environment:
-      POSTGRES_PASSWORD: rustyindie
-      POSTGRES_USER: rustyindie
-      POSTGRES_DB: rustyindie
+    env_file: .env.prod
     volumes:
       - ./dbdata:/var/lib/postgresql/data
+  api:
+    image: rustyindie-api-i
+    container_name: rustyindie-api-c
+    build:
+      context: .
+      dockerfile: ./dev-dockerfile
+    depends_on:
+      - db
+    env_file: .env.prod
+    ports:
+      - "4003:4003"

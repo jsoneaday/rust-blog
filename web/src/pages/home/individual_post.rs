@@ -24,7 +24,6 @@ pub fn IndividualPost() -> impl IntoView {
     };
     let api_service = expect_context::<ReadSignal<ApiService>>();
     let post_resource = create_resource(post_id, move |id| async move {
-        log!("call post with id: {}", id);
         let result = api_service.get_untracked().get_post(id).await;
         match result {
             Ok(post) => post,

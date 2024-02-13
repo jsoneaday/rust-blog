@@ -1,8 +1,9 @@
-use log::{info, error};
+use log::{error, info};
 use sqlx::{Pool, Postgres, migrate, FromRow};
 use std::env;
 use dotenv::dotenv;
 use async_trait::async_trait;
+use tokio::time::{sleep, Duration};
 
 #[derive(FromRow, Clone)]
 pub struct EntityId {
@@ -53,16 +54,35 @@ async fn get_conn_pool() -> Pool<Postgres> {
     let postgres_url = format!(
         "postgres://{postgres_user}:{postgres_password}@{postgres_host}:{postgres_port}/{postgres_db}"
     );
-    info!("connection string {}", postgres_url);
+    
+    let mut retry_limit = 0;
+    let mut conn: Option<Pool<Postgres>> = None;
+    loop {
+        if retry_limit > 3 {
+            panic!("Attempts to connect to db have failed, exiting ...");
+        }
+        let conn_result = sqlx::postgres::PgPool::connect(&postgres_url).await;
+        match conn_result {
+            Ok(some_conn) => {
+                let migrate_result = migrate!("./migrations").run(&some_conn).await;
+                match migrate_result {
+                    Ok(()) => {
+                        info!("migration complete");
+                    },
+                    Err(e) => error!("failed to migrate {}", e)
+                };
+                conn = Some(some_conn);
+                break;
+            },
+            Err(ref e) => {
+                error!("Failed to connect to db: {}", e);
+                continue;
+            }
+        }
+        info!("Failed to connect to db, trying again after 5 seconds ...");
+        retry_limit += 1;
+        sleep(Duration::from_secs(5)).await;
+    }
 
-    let conn = sqlx::postgres::PgPool::connect(&postgres_url).await.unwrap();
-    let migrate_result = migrate!("./migrations").run(&conn).await;
-    match migrate_result {
-        Ok(()) => {
-            info!("migration complete");
-        },
-        Err(e) => error!("failed to migrate {}", e)
-    };
-
-    conn
+    conn.unwrap()
 }

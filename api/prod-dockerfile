@@ -9,4 +9,4 @@ RUN apt-get install -y wget
 RUN apt-get install -y build-essential
 COPY --from=builder /usr/src/rustyindie-api /usr/local/bin/rustyindie-api
 WORKDIR /usr/local/bin/rustyindie-api
-ENTRYPOINT [ "./target/debug/rustyindie-api" ]
+ENTRYPOINT [ "./target/release/rustyindie-api" ]

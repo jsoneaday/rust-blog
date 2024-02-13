@@ -1,6 +1,9 @@
 /target
 /ssl
 /devdb
+
 .env
+.env.prod
+
 .DS_Store
 /dbdata
