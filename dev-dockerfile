@@ -21,11 +21,9 @@ RUN trunk build --release
 FROM ubuntu:22.04
 # setup web app
 COPY --from=builder /usr/src/rustyindie-web/dist /usr/local/bin/rustyindie-web/dist
-WORKDIR /usr/local/bin/rustyindie-web/dist
 
 # setup admin app
 COPY --from=builder /usr/src/rustyindie-admin/dist /usr/local/bin/rustyindie-admin/dist
-WORKDIR /usr/local/bin/rustyindie-admin/dist
 
 # setup nginx
 RUN apt-get update && apt-get install -y nginx

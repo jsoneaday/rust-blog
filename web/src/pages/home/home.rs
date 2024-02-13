@@ -33,7 +33,7 @@ pub fn Home() -> impl IntoView {
                 <h1>"Rust Indie Dev"</h1>
                 <h2 style="margin-top: -0.4em">"Indie Development with Rust"</h2>
                 <strong>"David Choi"</strong>
-                <b style="margin-top: 0.5em"><i><small>"contact me"</small></i></b>
+                <a href="mailto:admin@dzhaven.com"><b style="margin-top: 0.5em"><i><small>"contact me"</small></i></b></a>
                 <div style="margin-top: 1em">
                     <A href="https://github.com/jsoneaday/rust-blog" target="_blank">
                         <small>"This app is built entirely with Rust: Leptos, Actix Web"</small>
