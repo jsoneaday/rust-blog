@@ -18,6 +18,10 @@ pub mod common {
             pub mod models;
             pub mod repo;
         }
+        pub mod mail {
+            pub mod models;
+            pub mod repo;
+        }
     }
 }
 pub mod routes {
@@ -30,6 +34,10 @@ pub mod routes {
         pub mod routes;
     }
     pub mod post {
+        pub mod models;
+        pub mod routes;
+    }
+    pub mod mail {
         pub mod models;
         pub mod routes;
     }

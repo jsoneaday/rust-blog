@@ -19,3 +19,12 @@ create table post (
 
     constraint fk_admin foreign key(admin_id) references administrator(id)
 );
+
+create table mail (
+    "id" bigserial primary key,
+    "created_at" timestamptz(3) not null default current_timestamp,
+    "updated_at" timestamptz(3) not null default current_timestamp,
+    "from" varchar(150) not null,
+    "subject" varchar(250) not null,
+    "message" text not null,
+);
