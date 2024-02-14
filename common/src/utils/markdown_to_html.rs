@@ -1,5 +1,5 @@
 use regex::Regex;
-use leptos::{logging::{log, warn}, HtmlElement, html::{a, code, pre, div, h1, h2, h3, i, img, li, ol, p, span, strong, ul, AnyElement, Img, A}};
+use leptos::{logging::warn, HtmlElement, html::{a, code, pre, div, h1, h2, h3, i, img, li, ol, p, span, strong, ul, AnyElement, Img, A}};
 
 pub struct MarkdownToHtmlConverter {
     pub heading_level_1_finder: Regex,

@@ -1,7 +1,6 @@
 use leptos::logging::log;
 use leptos::*;
 use rustyindie_common::api::api_service::ApiService;
-use rustyindie_common::components::layout::Layout;
 use rustyindie_common::components::post::list_post_previews::ListPostPreviews;
 
 #[component]

@@ -18,7 +18,7 @@ pub fn Login() -> impl IntoView {
                 Ok(login_resp) => {
                     set_login_resp(Some(login_resp.clone()));
                 },
-                Err(e) => log!("login failed")
+                Err(_) => log!("login failed")
             };
         }
     });

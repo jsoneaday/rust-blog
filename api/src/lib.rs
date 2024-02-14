@@ -103,7 +103,8 @@ pub async fn run() -> std::io::Result<()> {
     dotenv().ok();
     let host = env::var("HOST").unwrap();
     let port = env::var("PORT").unwrap().parse::<u16>().unwrap();
-    let allowed_web_url = env::var("ALLOWED_WEB_URL").unwrap();
+    let allowed_local_web_url = env::var("ALLOWED_LOCAL_WEB_URL").unwrap();
+    let allowed_ext_web_url = env::var("ALLOWED_EXT_WEB_URL").unwrap();
     let allowed_admin_url = env::var("ALLOWED_ADMIN_URL").unwrap();
     
     let app_data = actix_web::web::Data::new(AppState{
@@ -119,7 +120,8 @@ pub async fn run() -> std::io::Result<()> {
             .wrap(
                 Cors::default()
                     .allowed_origin(&allowed_admin_url)
-                    .allowed_origin(&allowed_web_url)
+                    .allowed_origin(&allowed_local_web_url)
+                    .allowed_origin(&allowed_ext_web_url)
                     .allowed_methods(vec!["GET", "POST"])
                     .allowed_headers(vec![
                         header::CONTENT_TYPE,

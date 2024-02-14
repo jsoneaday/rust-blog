@@ -14,9 +14,11 @@ services:
     container_name: rustyindie-api-c
     build:
       context: .
-      dockerfile: ./dev-dockerfile
+      dockerfile: ./prod-dockerfile
     depends_on:
       - db
     env_file: .env.prod
     ports:
       - "4003:4003"
+    expose:
+      - 4003

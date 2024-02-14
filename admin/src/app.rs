@@ -1,4 +1,3 @@
-use leptos::logging::log;
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
@@ -17,8 +16,6 @@ pub fn App() -> impl IntoView {
     let login_resp = create_signal::<Option<LoginResponse>>(None);    
     provide_context(login_resp);
     provide_meta_context();
-
-    log!("App component loaded");
     
     view! {
         <Router>

@@ -1,5 +1,4 @@
 use leptos::*;
-use leptos::logging::log;
 use leptos_router::*;
 use rustyindie_common::api::models::LoginResponse;
 use rustyindie_common::components::layout::Layout;
@@ -22,10 +21,9 @@ pub fn Admin() -> impl IntoView {
     });
 
     create_effect(move |_| {
-        if let Some(login) = login_resp() {
+        if let Some(_login) = login_resp() {
             set_dialog_open(false);
         } else {
-            log!("not logged in");
             set_dialog_open(true);
         }
     });

@@ -4,17 +4,20 @@ use reqwest::header::HeaderMap;
 use reqwest::{Client, StatusCode};
 use reqwest::Error;
 
-pub const API_DEV_URL: &str = "https://127.0.0.1:4003/v1";
-
 #[derive(Clone, Debug, Default)]
 pub struct ApiService {
-    client: Client
+    client: Client,
+    api_url: String
 }
 
 impl ApiService {
     pub fn new() -> Self {
+        // todo: replace with dynamic env variable when ready
+        let api_url = "https://127.0.0.1:4003/v1".to_string();
+
         ApiService {
-            client: Client::new()
+            client: Client::new(),
+            api_url
         }
     }
 
@@ -22,7 +25,7 @@ impl ApiService {
         let mut headers = HeaderMap::new();
         headers.insert("Authorization", format!("Bearer {}", token).parse().unwrap());
 
-        let post_resp = self.client.post(format!("{}/{}", API_DEV_URL, "post"))
+        let post_resp = self.client.post(format!("{}/{}", self.api_url, "post"))
             .headers(headers)
             .json(new_post)
             .send()
@@ -38,7 +41,7 @@ impl ApiService {
         let mut headers = HeaderMap::new();
         headers.insert("Authorization", format!("Bearer {}", token).parse().unwrap());
 
-        let post_resp = self.client.post(format!("{}/{}", API_DEV_URL, "update_post"))
+        let post_resp = self.client.post(format!("{}/{}", self.api_url, "update_post"))
             .headers(headers)
             .json(update_post)
             .send()
@@ -56,7 +59,7 @@ impl ApiService {
     }
 
     pub async fn login(&self, credentials: &LoginCredential) -> Result<LoginResponse, Error> {
-        let login_res = self.client.post(format!("{}/{}", API_DEV_URL, "login"))
+        let login_res = self.client.post(format!("{}/{}", self.api_url, "login"))
             .json(credentials)
             .send()
             .await;
@@ -73,7 +76,7 @@ impl ApiService {
     }
 
     pub async fn get_latest_posts(&self, last_offset: i32) -> Result<Vec<Post>, Error> {
-        let posts = self.client.get(format!("{}/{}/10/{}", API_DEV_URL, "post", last_offset))
+        let posts = self.client.get(format!("{}/{}/10/{}", self.api_url, "post", last_offset))
             .send()
             .await;
 
@@ -89,7 +92,7 @@ impl ApiService {
     }
 
     pub async fn get_post(&self, post_id: i64) -> Result<Option<Post>, Error> {
-        let post_resp = self.client.get(format!("{}/{}/{}", API_DEV_URL, "post", post_id))
+        let post_resp = self.client.get(format!("{}/{}/{}", self.api_url, "post", post_id))
             .send()
             .await;
 
