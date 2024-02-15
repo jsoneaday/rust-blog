@@ -1,5 +1,6 @@
 use super::models::{LoginCredential, LoginResponse, UpdatePost, Post};
 use super::models::{OutputId, NewPost};
+use leptos::logging::log;
 use reqwest::header::HeaderMap;
 use reqwest::{Client, StatusCode};
 use reqwest::Error;
@@ -12,12 +13,11 @@ pub struct ApiService {
 
 impl ApiService {
     pub fn new() -> Self {
-        // todo: replace with dynamic env variable when ready
-        let api_url = "https://127.0.0.1:4003/v1".to_string();
+        let env_api_url = env!("API_URL");
 
         ApiService {
             client: Client::new(),
-            api_url
+            api_url: env_api_url.to_string()
         }
     }
 

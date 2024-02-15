@@ -10,11 +10,13 @@ RUN cargo install wasm-bindgen-cli
 RUN cargo install trunk
 
 # first setup web build
+ARG API_URL=https://127.0.0.1:4003/v1
 RUN trunk build
 
 # next setup admin build
 WORKDIR /usr/src/rustyindie-admin
 COPY ./admin .
+ARG API_URL=https://127.0.0.1:4003/v1
 RUN trunk build
 
 
