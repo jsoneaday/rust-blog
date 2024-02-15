@@ -220,6 +220,13 @@ textarea {
   font-size: 0.85em;
 }
 
+.preview-separator {
+  width: 80%;
+  color: var(--secondary-cl);
+  background-color: var(--secondary-cl);
+  margin-top: 1.5em;
+}
+
 select {
   background-color: transparent;
   border: none;

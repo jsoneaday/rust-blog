@@ -30,7 +30,8 @@ services:
       POSTGRES_PASSWORD: rustyindie
       POSTGRES_USER: rustyindie
       POSTGRES_DB: rustyindie
-      ALLOWED_WEB_URL: http://127.0.0.1
+      ALLOWED_LOCAL_WEB_URL: http://127.0.0.1
+      ALLOWED_EXT_WEB_URL: http://127.0.0.1
       ALLOWED_ADMIN_URL: http://127.0.0.1:3001
     ports:
       - "4003:4003"

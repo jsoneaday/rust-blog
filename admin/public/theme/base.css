@@ -187,3 +187,13 @@ input {
   padding: 0.75em;
   width: 100%;
 }
+
+p {
+  white-space: normal !important;
+}
+
+@media only screen and (max-device-width: 926px) {
+  main {
+    width: 100%;
+  }
+}

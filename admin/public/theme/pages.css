@@ -27,3 +27,36 @@
   padding: 1.5em;
   padding-top: 0;
 }
+
+@media only screen and (max-device-width: 926px) {
+  .home-double-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    height: 100vh;
+  }
+
+  .home-menu {
+    align-self: top;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    background-color: var(--panel-bg-cl);
+    padding: 1.5em;
+    padding-top: 0;
+    border-bottom-color: var(--secondary-cl);
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+    width: 100%;
+  }
+
+  .home-content {
+    align-self: top;
+    background-color: var(--panel-bg-cl);
+    padding: 1.5em;
+    padding-top: 0;
+    width: 100%;
+  }
+}
